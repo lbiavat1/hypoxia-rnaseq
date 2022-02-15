@@ -88,6 +88,8 @@ dds <- DESeqDataSetFromMatrix(countData = rowname_cts, colData = col.data,
                               design = ~ ID + Tissue)
 design(dds) <- formula(~ Tissue + ID)
 dds
+
+########################### tidytranscriptomics ###############################
 # coerce DESeqDataSet to RangedSummarizedExperiment
 rse <- as(dds, "RangedSummarizedExperiment")
 
@@ -97,7 +99,7 @@ tail(counts)
 
 # remove "L" from "PBL"
 counts_format <- counts %>% 
-  mutate(Region = str_remove(Tissue, "L"))
+  mutate(Tissue = str_remove(Tissue, "L"))
 
 counts_scaled <- counts_format %>%
   identify_abundant(factor_of_interest = Tissue, minimum_counts = 25, minimum_proportion = 0.25) %>%
@@ -153,3 +155,74 @@ counts_scaled %>%
     annotation = c(Tissue),
     transform = log1p
   )
+
+counts_de <- counts_scaled %>%
+  test_differential_abundance(
+    .formula = ~ 0 + Tissue + ID,
+    .contrasts = c("TissueBM - TissuePB"),
+    omit_contrast_in_colnames = TRUE
+  )
+
+
+counts_de %>% pivot_transcript(.transcript = feature)
+
+topgenes <-
+  counts_de %>%
+  pivot_transcript() %>%
+  arrange(PValue) %>%
+  head(20)
+
+topgenes_symbols <- topgenes %>% pull(feature)
+topgenes_symbols <- c(topgenes_symbols, "FABP4")
+
+counts_de %>%
+  pivot_transcript() %>%
+  
+  # Subset data
+  filter(.abundant) %>%
+  mutate(significant = FDR < 0.01 & abs(logFC) >= 2) %>%
+  mutate(feature = ifelse(feature %in% topgenes_symbols, as.character(feature), "")) %>%
+  
+  # Plot
+  ggplot(aes(x = logFC, y = PValue, label = feature)) +
+  geom_point(aes(color = significant, size = significant, alpha = significant)) +
+  geom_text_repel() +
+  
+  # Custom scales
+  scale_y_continuous(trans = "log10_reverse") +
+  scale_color_manual(values = c("black", "#e11f28")) +
+  scale_size_discrete(range = c(0, 2)) +
+  theme_bw()
+
+counts_de %>%
+  filter(.abundant) %>%
+  pivot_transcript(.transcript = feature) %>%
+  write_csv(file.path(dirPath, "results", "deBM-PB_results.csv"))
+
+topgenes <-
+  counts_de %>%
+  pivot_transcript() %>%
+  arrange(PValue) %>%
+  head(50)
+
+topgenes_symbols <- topgenes %>% pull(feature)
+topgenes_symbols <- c("DEFA1", "DEFA4", "ELANE", "CD177", "CXCL12", "CXCR4", "DEFA3", "FABP4")
+
+strip_chart <-
+  counts_scaled %>%
+  
+  # extract counts for top differentially expressed genes
+  filter(feature %in% topgenes_symbols) %>%
+  
+  # make stripchart
+  ggplot(aes(x = Tissue, y = counts_scaled + 1, fill = Tissue, label = "")) +
+  geom_boxplot() +
+  geom_jitter() +
+  facet_wrap(~ feature) +
+  scale_y_log10()+
+  theme_bw()
+
+strip_chart
+
+############################### DESeq2 - std workflow ##########################
+
