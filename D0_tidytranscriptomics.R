@@ -264,4 +264,6 @@ metadata(resIHW)$ihwResult
 
 resIHW %>% 
   as.data.frame() %>%
+  rownames_to_column(var = "id") %>%
+  as_tibble() %>%
   write_csv(file = file.path(file.path(dirPath, "results", "deBM-PB_resultsDESeq2IHW.csv")))
