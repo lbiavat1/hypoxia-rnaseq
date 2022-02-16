@@ -29,6 +29,7 @@ library(msigdbr)
 library(enrichplot)
 library(DOSE)
 library(fgsea)
+library(SCPA)
 
 # Set PrimaryDirectory where this script is located
 dirname(rstudioapi::getActiveDocumentContext()$path)  
@@ -122,6 +123,12 @@ hallmark.path <- paste(filePath, "gene_sets", "h.all.v7.1.symbols.gmt", sep = "/
 pathway.HALLMARK <- gmtPathways(hallmark.path)
 HALLMARK <- read.gmt(hallmark.path)
 
+hallmark <- msigdbr("Homo sapiens", "H") %>% format_pathways()
+
+c7.path <- paste(filePath, "gene_sets", "c7.all.v7.1.symbols.gmt", sep = "/")
+pathway.C7 <- gmtPathways(c7.path)
+C7 <- read.gmt(c7.path)
+
 
 BMvsPB_rnk <- BMvsPB_ihw %>%
   mutate(padj = ifelse(is.na(padj), 1, padj)) %>%
@@ -135,6 +142,11 @@ BMvsPB_rnk <- BMvsPB_ihw %>%
   arrange(desc(stat)) %>%
   deframe()
 
-BMvsPB_gH <- GSEA(BMvsPB_rnk, exponent = 1, minGSSize = 5, maxGSSize = 500, eps = 0, pvalueCutoff = 0.1,
+BMvsPB_gH <- GSEA(BMvsPB_rnk, exponent = 1, minGSSize = 2, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
                       TERM2GENE = HALLMARK, by = "fgsea")
 BMvsPB_gH@result$ID
+
+BMvsPB_C7 <- GSEA(BMvsPB_rnk, exponent = 1, minGSSize = 2, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
+                  TERM2GENE = C7, by = "fgsea")
+head(BMvsPB_C7@result$ID)
+

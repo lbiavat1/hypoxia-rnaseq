@@ -229,6 +229,20 @@ strip_chart <-
 
 strip_chart
 
+# deconvolve cellularity
+counts_de_cibersort <- deconvolve_cellularity(counts_de, action = "get", cores = 1,
+                                              method = "cibersort", prefix = "cibersort__")
+
+counts_de_cibersort %>%
+  pivot_longer(
+    names_to = "Cell_type_inferred", 
+    values_to = "proportion", 
+    names_prefix ="cibersort__", 
+    cols = contains("cibersort__")
+  ) %>%
+  ggplot(aes( x = `Cell_type_inferred`, y = proportion)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), aspect.ratio=1/5)
 ############################### DESeq2 - std workflow ##########################
 
 # Pre-Filtering
