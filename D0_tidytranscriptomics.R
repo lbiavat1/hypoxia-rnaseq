@@ -13,6 +13,9 @@ library(GGally)
 library(DESeq2)
 library(limma)
 library(edgeR)
+library(fgsea)
+library(hciR)
+library(IHW)
 
 # Set PrimaryDirectory where this script is located
 dirname(rstudioapi::getActiveDocumentContext()$path)  
@@ -33,6 +36,8 @@ dir.create(saveDir)
 
 filesPath <- file.path(dirPath, "files")
 dir.create(filesPath)
+
+########################## prep for data analysis #############################
 
 countFile <- "Counts"
 
@@ -80,7 +85,7 @@ summary(col.data)
 all(colnames(rowname_cts) == rownames(col.data))
 col.data$Condition <- "Resting"
 colnames(col.data)[2] <- "Tissue"
-col.data
+col.data <- col.data %>% mutate(Tissue = str_remove(Tissue, "L"))
 
 # prep DESeq2 object
 
@@ -226,3 +231,37 @@ strip_chart
 
 ############################### DESeq2 - std workflow ##########################
 
+# Pre-Filtering
+
+dim(dds)
+keep <- rowSums( counts(dds) ) >= 25
+summary(keep)
+dds <- dds[ keep, ]
+dim(dds)
+
+# varianceStabilizingTransformation
+vsd <- vst(dds, blind = TRUE)
+DESeq2::plotPCA(vsd, intgroup = "Tissue", ntop = 500) +
+  stat_ellipse(level = 0.7, type = "norm")
+
+dds$Tissue <- relevel(dds$Tissue, ref = "PB")
+dds <- DESeq(dds)
+res <- results(dds, contrast = c("Tissue", "BM", "PB"))
+res
+DESeq2::plotMA(res, ylim = c(-2,2))
+
+resultsNames(dds)
+resLFC <- lfcShrink(dds, coef = "Tissue_BM_vs_PB", type = "apeglm")
+DESeq2::plotMA(resLFC, ylim = c(-2,2))
+resLFC
+sum(resLFC$padj < 0.01, na.rm = TRUE)
+res01 <- results(dds, contrast = c("Tissue", "BM", "PB"), alpha = 0.01)
+summary(res01)
+
+resIHW <- results(dds, contrast = c("Tissue", "BM", "PB"), alpha = 0.01, filterFun = ihw)
+summary(resIHW)
+metadata(resIHW)$ihwResult
+
+resIHW %>% 
+  as.data.frame() %>%
+  write_csv(file = file.path(file.path(dirPath, "results", "deBM-PB_resultsDESeq2IHW.csv")))
