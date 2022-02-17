@@ -199,6 +199,25 @@ counts_de %>%
   scale_size_discrete(range = c(0, 2)) +
   theme_bw()
 
+# informative MA plot
+topgenes_symbols <- c("DEFA1", "DEFA4", "ELANE", "CD177", "CXCL12", "CXCR4", "DEFA3", "FABP4")
+counts_de %>%
+  pivot_transcript() %>%
+  
+  # Subset data
+  filter(.abundant) %>%
+  mutate(significant = FDR < 0.01 & abs(logFC) >= 2) %>%
+  mutate(feature = ifelse(feature %in% topgenes_symbols, as.character(feature), "")) %>%
+  
+  
+  # Plot
+  ggplot(aes(x = logCPM, y = logFC, label = feature)) +
+  geom_point(aes(color = significant, size = significant, alpha = significant)) +
+  geom_text_repel() +
+  scale_color_manual(values=c("black", "#e11f28")) +
+  scale_size_discrete(range = c(0, 2)) +
+  theme_bw()
+
 counts_de %>%
   filter(.abundant) %>%
   pivot_transcript(.transcript = feature) %>%
@@ -242,7 +261,10 @@ counts_de_cibersort %>%
   ) %>%
   ggplot(aes( x = `Cell_type_inferred`, y = proportion)) +
   geom_boxplot() +
+  facet_wrap(~ sample) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), aspect.ratio=1/5)
+
+
 ############################### DESeq2 - std workflow ##########################
 
 # Pre-Filtering
