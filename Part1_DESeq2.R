@@ -22,7 +22,7 @@ PrimaryDirectory <- getwd()
 PrimaryDirectory
 
 # create working directory
-workingDir <- "WorkingDirector"
+workingDir <- "WorkingDirectory"
 dirPath <- file.path(PrimaryDirectory, workingDir)
 dir.create(dirPath)
 setwd(dirPath)
