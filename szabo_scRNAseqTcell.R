@@ -6,6 +6,7 @@ library(SCPA)
 library(msigdbr)
 library(magrittr)
 library(ComplexHeatmap)
+library(SingleCellExperiment)
 
 
 
@@ -206,9 +207,6 @@ p4 <- VlnPlot(tissue_data, "CD8A", pt.size = 0, group.by = "neat", ncol = 1) +
 
 
 patchwork::wrap_plots(p1, p2, p3, p4, ncol = 2)
-
-
-
 
 
 
