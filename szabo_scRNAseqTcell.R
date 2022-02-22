@@ -34,7 +34,9 @@ list.files(filesPath)
 
 t_cell <- read_rds(file.path(filesPath, "szabo_t_cell.rds"))
 DimPlot(t_cell, split.by = "tis_stim", group.by = "fine", ncol = 4)
+t_cell <- subset(t_cell, subset = stimulation == "none")
 
+# metab <- read_csv(file.path(saveDir, "gene_sets", "combined_metabolic_pathways.csv"))
 pws <- c("kegg", "reactome", "biocarta", "wiki", "pid")
 # pathways <- msigdbr::msigdbr("Homo sapiens") %>%
 #   filter(grepl(paste(pws, collapse = "|"), gs_subcat, ignore.case = TRUE) |
@@ -48,6 +50,8 @@ pathways <- msigdbr::msigdbr("Homo sapiens") %>%
            grepl("HALLMARK", x = gs_name, ignore.case = TRUE)) %>%
   format_pathways()
 length(pathways)
+
+
 
 cell_types <- unique(t_cell$fine)
 
@@ -164,50 +168,102 @@ apply(all_data, 1, var) %>%
         axis.ticks.x = element_blank(),
         panel.background = element_blank(),
         panel.border = element_rect(fill = NA))
+plot_rank(scpa_results, pathway = "REACTOME_ANTIMICROBIAL_PEPTIDES")
 
 mydf <- apply(all_data, 1, var) %>%
   data.frame() %>% 
   set_colnames("variation") %>%
   arrange(desc(variation)) %>% 
-  rownames_to_column("pathway") 
+  rownames_to_column("pathway") %>%
+  as_tibble()
 
 rm(split_tissue)
-tissue_data <- read_rds(file.path(filesPath, "szabo_t_cell.rds"))
+t_cell <- read_rds(file.path(filesPath, "szabo_t_cell.rds"))
+rest <- subset(t_cell, subset = stimulation == "none")
+tissue_data <- rest
 tissue_data$neat <- case_when(tissue_data$tissue == "bl" ~ "Blood",
                               tissue_data$tissue == "bm" ~ "BM",
                               tissue_data$tissue == "lung" ~ "Lung",
                               tissue_data$tissue == "ln" ~ "LN")
 
-plots <- VlnPlot(tissue_data, c("DEFA1", "DEFA3", "CD177", "ELANE", "FABP4"), pt.size = 0, group.by = "neat", ncol = 1, combine = F)
+# plots <- VlnPlot(tissue_data, c("DEFA1", "DEFA3", "CD177", "ELANE", "FABP4"), pt.size = 0, group.by = "neat", ncol = 1, combine = F)
 
-p1 <- VlnPlot(tissue_data, "DEFA1", pt.size = 0, group.by = "neat", ncol = 1) +
-  theme(axis.text.x = element_blank(),
-        axis.title.x = element_blank(),
-        plot.title = element_blank()) + 
-  NoLegend() +
-  ylab("Log1p")
-
-p2 <- VlnPlot(tissue_data, "DEFA3", pt.size = 0, group.by = "neat", ncol = 1) +
+p1 <- VlnPlot(tissue_data, "DEFA1", pt.size = 0.1, group.by = "neat", ncol = 1) +
   theme(axis.title.x = element_blank(),
-        plot.title = element_blank()) + 
+        plot.title = element_text()) + 
   NoLegend() +
   ylab("Log1p")
 
-p3 <- VlnPlot(tissue_data, "IGHG1", pt.size = 0, group.by = "neat", ncol = 1) +
+p2 <- VlnPlot(tissue_data, "DEFA3", pt.size = 0.1, group.by = "neat", ncol = 1) +
   theme(axis.title.x = element_blank(),
-        plot.title = element_blank()) + 
+        plot.title = element_text()) + 
   NoLegend() +
   ylab("Log1p")
 
-p4 <- VlnPlot(tissue_data, "CD8A", pt.size = 0, group.by = "neat", ncol = 1) +
+p3 <- VlnPlot(tissue_data, "DEFA4", pt.size = 0.1, group.by = "neat", ncol = 1) +
   theme(axis.title.x = element_blank(),
-        plot.title = element_blank()) + 
+        plot.title = element_text()) + 
   NoLegend() +
   ylab("Log1p")
 
+p4 <- VlnPlot(tissue_data, "ELANE", pt.size = 0.1, group.by = "neat", ncol = 1) +
+  theme(axis.title.x = element_blank(),
+        plot.title = element_text()) + 
+  NoLegend() +
+  ylab("Log1p")
 
-patchwork::wrap_plots(p1, p2, p3, p4, ncol = 2)
+p5 <- VlnPlot(tissue_data, "PRTN3", pt.size = 0.1, group.by = "neat", ncol = 1) +
+  theme(axis.title.x = element_blank(),
+        plot.title = element_text()) + 
+  NoLegend() +
+  ylab("Log1p")
+
+p6 <- VlnPlot(tissue_data, "MPO", pt.size = 0.1, group.by = "neat", ncol = 1) +
+  theme(axis.title.x = element_blank(),
+        plot.title = element_text()) + 
+  NoLegend() +
+  ylab("Log1p")
+
+patchwork::wrap_plots(p1, p2, p3, p4, p5, p6, ncol = 3)
 
 
+# try my own way
+blood <- seurat_extract(split_tissue$bl, 
+                        meta1 = "stimulation", value_meta1 = "none")
+
+bm <- seurat_extract(split_tissue$bm, 
+                     meta1 = "stimulation", value_meta1 = "none")
+
+ln <- seurat_extract(split_tissue$ln,
+                     meta1 = "stimulation", value_meta1 = "none")
+
+lung <- seurat_extract(split_tissue$lung,
+                       meta1 = "stimulation", value_meta1 = "none")
+
+# compare all tissues to blood
+pathways <- msigdbr::msigdbr("Homo sapiens") %>%
+  filter(grepl("ANTIMICROBIAL", gs_name, ignore.case = TRUE) |
+           grepl("PROSTAGLANDIN", gs_name, ignore.case = TRUE) |
+           grepl("HALLMARK", x = gs_name, ignore.case = TRUE)) %>%
+  format_pathways()
+length(pathways)
+bm_bl <- compare_pathways(list(bm, blood), pathways)
+bm_ln <- compare_pathways(list(bm, ln), pathways)
+bm_lung <- compare_pathways(list(bm, lung), pathways)
 
 
+bm_all <- compare_pathways(list(bm, blood, ln, lung), pathways)
+plot_rank(bm_all, pathway = c("antimicrobial", "hypoxia"))
+bm_all %>% arrange(desc(qval)) %>% as_tibble()
+bm_metab <- compare_pathways(list(bm, blood, ln, lung), 
+                             pathway = file.path(saveDir, "gene_sets", "combined_metabolic_pathways.csv"))
+bm_metab %>% arrange(desc(qval)) %>% as_tibble()
+plot_rank(bm_metab, pathway = c("glycolysis", "amino_acid"))
+
+plot_rank(bm_bl, pathway = "antimicrobial")
+plot_rank(bm_ln, pathway = "antimicrobial")
+plot_rank(bm_lung, pathway = "antimicrobial")
+colnames(bm_ln)
+bm_bl %>% arrange(desc(qval)) %>% select(Pathway, qval, adjPval) %>% as_tibble()
+bm_ln %>% arrange(desc(qval)) %>% select(Pathway, qval, adjPval) %>% as_tibble()
+bm_lung %>% arrange(desc(qval)) %>% select(Pathway, qval, adjPval) %>% as_tibble()
