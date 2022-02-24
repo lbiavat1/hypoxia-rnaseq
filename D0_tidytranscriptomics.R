@@ -234,7 +234,7 @@ hm <- counts_scaled %>%
     show_column_names = FALSE,
     show_row_names = TRUE,
     column_km = 2,
-    row_km = 3,
+    row_km = 4,
     row_labels = name_list
   )
 hm
