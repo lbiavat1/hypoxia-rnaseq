@@ -40,7 +40,8 @@ DimPlot(t_cell, split.by = "tis_stim", group.by = "fine", ncol = 4)
 pdf(file = file.path(plotDir, "UMAP_all.pdf"))
 DimPlot(t_cell, split.by = "tis_stim", group.by = "fine", ncol = 4)
 dev.off()
-########################### VlnPlots ##########################################
+
+##################### Subset t_cell object #####################################
 # no stim only
 t_cell <- subset(t_cell, subset = stimulation == "none")
 
@@ -49,47 +50,50 @@ t_cell$neat <- case_when(t_cell$tissue == "bl" ~ "Blood",
                          t_cell$tissue == "lung" ~ "Lung",
                          t_cell$tissue == "ln" ~ "LN")
 
+
+########################### VlnPlots ##########################################
+
 # UMAP plot with expression
 
-features <- c("DEFA1", "DEFA3", "ELANE")
-FeaturePlot(t_cell, features, split.by = "neat", ncol = 4)
+features <- c("DEFA1", "DEFA3", "CD69")
+FeaturePlot(t_cell, features, split.by = "stimulation", ncol = 4)
 pdf(file = file.path(plotDir, "UMAP_featureplot.pdf"))
 FeaturePlot(t_cell, features, split.by = "neat", ncol = 4)
 dev.off()
 
 # violin plots
 
-p1 <- VlnPlot(t_cell, "DEFA1", pt.size = 0.1, group.by = "neat", ncol = 1) +
+p1 <- VlnPlot(t_cell, "DEFA1", pt.size = 0, group.by = "none", ncol = 1) +
   theme(axis.title.x = element_blank(),
         plot.title = element_text()) + 
   NoLegend() +
   ylab("Log1p")
 
-p2 <- VlnPlot(t_cell, "DEFA3", pt.size = 0.1, group.by = "neat", ncol = 1) +
+p2 <- VlnPlot(t_cell, "DEFA3", pt.size = 0, group.by = "none", ncol = 1) +
   theme(axis.title.x = element_blank(),
         plot.title = element_text()) + 
   NoLegend() +
   ylab("Log1p")
 
-p3 <- VlnPlot(t_cell, "DEFA4", pt.size = 0.1, group.by = "neat", ncol = 1) +
+p3 <- VlnPlot(t_cell, "DEFA4", pt.size = 0.1, group.by = "none", ncol = 1) +
   theme(axis.title.x = element_blank(),
         plot.title = element_text()) + 
   NoLegend() +
   ylab("Log1p")
 
-p4 <- VlnPlot(t_cell, "ELANE", pt.size = 0.1, group.by = "neat", ncol = 1) +
+p4 <- VlnPlot(t_cell, "IRF4", pt.size = 0.1, group.by = "none", ncol = 1) +
   theme(axis.title.x = element_blank(),
         plot.title = element_text()) + 
   NoLegend() +
   ylab("Log1p")
 
-p5 <- VlnPlot(t_cell, "PRTN3", pt.size = 0.1, group.by = "neat", ncol = 1) +
+p5 <- VlnPlot(t_cell, "MPO", pt.size = 0.1, group.by = "none", ncol = 1) +
   theme(axis.title.x = element_blank(),
         plot.title = element_text()) + 
   NoLegend() +
   ylab("Log1p")
 
-p6 <- VlnPlot(t_cell, "MPO", pt.size = 0.1, group.by = "neat", ncol = 1) +
+p6 <- VlnPlot(t_cell, "CD69", pt.size = 0.1, group.by = "none", ncol = 1) +
   theme(axis.title.x = element_blank(),
         plot.title = element_text()) + 
   NoLegend() +
@@ -97,7 +101,7 @@ p6 <- VlnPlot(t_cell, "MPO", pt.size = 0.1, group.by = "neat", ncol = 1) +
 
 patchwork::wrap_plots(p1, p2, p3, p4, p5, p6, ncol = 3)
 
-pdf(file = file.path(plotDir, "VlnPlots.pdf"))
+pdf(file = file.path(plotDir, "VlnPlots_Stim.pdf"))
 patchwork::wrap_plots(p1, p2, p3, p4, p5, p6, ncol = 3)
 dev.off()
 
@@ -113,22 +117,41 @@ pathways <- msigdbr::msigdbr("Homo sapiens") %>%
 length(pathways)
 ###################### extract genes from pathways ############################
 ex_pathways <- msigdbr::msigdbr("Homo sapiens") %>%
-  filter(grepl("ANTIMICROBIAL", gs_name, ignore.case = TRUE)) %>%
+  filter(grepl("EXHAUST", gs_name, ignore.case = TRUE)) %>%
   format_pathways()
 length(ex_pathways)
-genes <- ex_pathways[[1]]$Genes
+is.list(ex_pathways)
 genes <- c()
 for(i in 1:length(ex_pathways)){
   genes <- c(genes, ex_pathways[[i]]$Genes)
 }
 genes <- unique(genes)
 genes
-#write function to do this
 
+# function to extarct genes from pathways
+extract_genes <- function(pathways){
+  genes <- c()
+  if(is_tibble(pathways)){
+    genes <- pathways$Genes
+    genes <- unique(genes)
+  }else{
+    for(i in 1:length(pathways)){
+      genes <- c(genes, pathways[[i]]$Genes)
+    }
+    genes <- unique(genes)
+  }
+  return(genes)
+}
+
+geneList <- extract_genes(ex_pathways)
+
+########################## prep Seurat Object for SCPA #########################
 cell_types <- unique(t_cell$fine)
 
 split_tissue <- SplitObject(t_cell, split.by = "tissue")
-
+# free some memory
+rm(t_cell)
+############################# SCPA all cells ###################################
 blood <- seurat_extract(split_tissue$bl, 
                         meta1 = "stimulation", value_meta1 = "none")
 
@@ -140,14 +163,19 @@ ln <- seurat_extract(split_tissue$ln,
 
 lung <- seurat_extract(split_tissue$lung,
                        meta1 = "stimulation", value_meta1 = "none")
-
 # compare all tissues to BM
 bm_bl <- compare_pathways(list(bm, blood), pathways)
 bm_bl %>% arrange(desc(qval)) %>% as_tibble()
 plot_rank(bm_bl, pathway = c("antimicrobial", "apoptosis"))
 bm_ln <- compare_pathways(list(bm, ln), pathways)
 bm_ln %>% arrange(desc(qval)) %>% as_tibble()
-plot_rank(bm_ln, pathway = c("antimicrobial", "hypoxia"))
+plot_rank(bm_ln, pathway = c("HALLMARK_HYPOXIA", 
+                             "GOBP_ANTIMICROBIAL_HUMORAL_IMMUNE_RESPONSE_MEDIATED"))
+pdf(file = file.path(plotDir, "SCPA_BMLN.pdf"))
+plot_rank(bm_ln, pathway = c("HALLMARK_HYPOXIA", 
+                             "GOBP_ANTIMICROBIAL_HUMORAL_IMMUNE_RESPONSE_MEDIATED"))
+dev.off()
+
 bm_lung <- compare_pathways(list(bm, lung), pathways)
 bm_lung %>% arrange(desc(qval)) %>% as_tibble()
 plot_rank(bm_lung, pathway = c("antimicrobial"))
@@ -157,12 +185,27 @@ bm_all <- compare_pathways(list(bm, blood, ln, lung), pathways)
 bm_all %>% arrange(desc(qval)) %>% as_tibble()
 plot_rank(bm_all, pathway = c("antimicrobial", "hypoxia"))
 
+pdf(file = file.path(plotDir, "SCPA_all.pdf"))
+plot_rank(bm_all, pathway = c("antimicrobial", "hypoxia"))
+dev.off()
+
 
 # metabolic pathways only
 bm_metab <- compare_pathways(list(bm, blood, ln, lung), 
                              pathway = file.path(saveDir, "gene_sets", "combined_metabolic_pathways.csv"))
 bm_metab %>% arrange(desc(qval)) %>% as_tibble()
-plot_rank(bm_metab, pathway = c("glycolysis", "amino_acid"))
+plot <- plot_rank(bm_metab, pathway = c("HALLMARK_GLYCOLYSIS", "HALLMARK_OXIDATIVE_PHOSPHORYLATION",
+                                        "REACTOME_METABOLISM_OF_AMINO_ACIDS_AND_DERIVATIVES",
+                                        "REACTOME_PYRUVATE_METABOLISM_AND"))
+plot
+pdf(file = file.path(plotDir, "SCPA_all_metab.pdf"))
+plot
+dev.off()
+
+bmln_metab <- compare_pathways(list(bm, blood), 
+                             pathway = file.path(saveDir, "gene_sets", "combined_metabolic_pathways.csv"))
+bmln_metab %>% arrange(desc(qval)) %>% as_tibble()
+
 
 plot_rank(bm_bl, pathway = "antimicrobial")
 plot_rank(bm_ln, pathway = "antimicrobial")
@@ -175,6 +218,7 @@ bm_lung %>% arrange(desc(qval)) %>% select(Pathway, qval, adjPval) %>% as_tibble
 ##################### SCPA by tissue and T cell subset #########################
 #create empty lists to store results from the for loop
 bl_bm <- list(); bl_ln <- list(); bl_lung <- list()
+bm_all <- list()
 for (i in cell_types) {
   
   # extract expression data using `seurat_extract` based on tissue, cell_type ("fine"), and stimulation ("none")
@@ -199,6 +243,7 @@ for (i in cell_types) {
   bl_bm[[i]] <- compare_pathways(list(blood, bm), pathways)
   bl_ln[[i]] <- compare_pathways(list(blood, ln), pathways)
   bl_lung[[i]] <- compare_pathways(list(blood, lung), pathways)
+  bm_all[[i]] <- compare_pathways(list(bm, blood, ln, lung), pathways)
   
 }
 
@@ -293,53 +338,8 @@ mydf <- apply(all_data, 1, var) %>%
   as_tibble()
 
 rm(split_tissue)
-t_cell <- read_rds(file.path(filesPath, "szabo_t_cell.rds"))
-rest <- subset(t_cell, subset = stimulation == "none")
-tissue_data <- rest
-tissue_data$neat <- case_when(tissue_data$tissue == "bl" ~ "Blood",
-                              tissue_data$tissue == "bm" ~ "BM",
-                              tissue_data$tissue == "lung" ~ "Lung",
-                              tissue_data$tissue == "ln" ~ "LN")
 
-# plots <- VlnPlot(tissue_data, c("DEFA1", "DEFA3", "CD177", "ELANE", "FABP4"), pt.size = 0, group.by = "neat", ncol = 1, combine = F)
 
-p1 <- VlnPlot(tissue_data, "DEFA1", pt.size = 0.1, group.by = "neat", ncol = 1) +
-  theme(axis.title.x = element_blank(),
-        plot.title = element_text()) + 
-  NoLegend() +
-  ylab("Log1p")
-
-p2 <- VlnPlot(tissue_data, "DEFA3", pt.size = 0.1, group.by = "neat", ncol = 1) +
-  theme(axis.title.x = element_blank(),
-        plot.title = element_text()) + 
-  NoLegend() +
-  ylab("Log1p")
-
-p3 <- VlnPlot(tissue_data, "DEFA4", pt.size = 0.1, group.by = "neat", ncol = 1) +
-  theme(axis.title.x = element_blank(),
-        plot.title = element_text()) + 
-  NoLegend() +
-  ylab("Log1p")
-
-p4 <- VlnPlot(tissue_data, "ELANE", pt.size = 0.1, group.by = "neat", ncol = 1) +
-  theme(axis.title.x = element_blank(),
-        plot.title = element_text()) + 
-  NoLegend() +
-  ylab("Log1p")
-
-p5 <- VlnPlot(tissue_data, "PRTN3", pt.size = 0.1, group.by = "neat", ncol = 1) +
-  theme(axis.title.x = element_blank(),
-        plot.title = element_text()) + 
-  NoLegend() +
-  ylab("Log1p")
-
-p6 <- VlnPlot(tissue_data, "MPO", pt.size = 0.1, group.by = "neat", ncol = 1) +
-  theme(axis.title.x = element_blank(),
-        plot.title = element_text()) + 
-  NoLegend() +
-  ylab("Log1p")
-
-patchwork::wrap_plots(p1, p2, p3, p4, p5, p6, ncol = 3)
 
 
 
