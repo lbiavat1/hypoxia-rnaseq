@@ -260,8 +260,9 @@ topgenes <-
   arrange(PValue) %>%
   head(10)
 
-topgenes_symbols <- topgenes %>% pull(feature) %>% 
-  c(topgenes_symbols, "FABP4", "DEFA1", "DEFA3")
+topgenes_symbols <- topgenes %>% pull(feature)
+
+topgenes_symbols <- c(topgenes_symbols, "FABP4", "DEFA1", "DEFA3")
 topgenes_symbols <- topgenes_symbols[-c(29)]
 
 volcano <- counts_de %>%

@@ -55,45 +55,45 @@ t_cell$neat <- case_when(t_cell$tissue == "bl" ~ "Blood",
 
 # UMAP plot with expression
 
-features <- c("DEFA1", "DEFA3", "CD69")
-FeaturePlot(t_cell, features, split.by = "stimulation", ncol = 4)
+features <- c("DEFA1", "DEFA3", "ELANE")
+FeaturePlot(t_cell, features, split.by = "tissue", ncol = 4)
 pdf(file = file.path(plotDir, "UMAP_featureplot.pdf"))
 FeaturePlot(t_cell, features, split.by = "neat", ncol = 4)
 dev.off()
 
 # violin plots
 
-p1 <- VlnPlot(t_cell, "DEFA1", pt.size = 0, group.by = "none", ncol = 1) +
+p1 <- VlnPlot(t_cell, "DEFA1", pt.size = 0.1, group.by = "tissue", ncol = 1) +
   theme(axis.title.x = element_blank(),
         plot.title = element_text()) + 
   NoLegend() +
   ylab("Log1p")
 
-p2 <- VlnPlot(t_cell, "DEFA3", pt.size = 0, group.by = "none", ncol = 1) +
+p2 <- VlnPlot(t_cell, "DEFA3", pt.size = 0.1, group.by = "tissue", ncol = 1) +
   theme(axis.title.x = element_blank(),
         plot.title = element_text()) + 
   NoLegend() +
   ylab("Log1p")
 
-p3 <- VlnPlot(t_cell, "DEFA4", pt.size = 0.1, group.by = "none", ncol = 1) +
+p3 <- VlnPlot(t_cell, "DEFA4", pt.size = 0.1, group.by = "tissue", ncol = 1) +
   theme(axis.title.x = element_blank(),
         plot.title = element_text()) + 
   NoLegend() +
   ylab("Log1p")
 
-p4 <- VlnPlot(t_cell, "IRF4", pt.size = 0.1, group.by = "none", ncol = 1) +
+p4 <- VlnPlot(t_cell, "ELANE", pt.size = 0.1, group.by = "tissue", ncol = 1) +
   theme(axis.title.x = element_blank(),
         plot.title = element_text()) + 
   NoLegend() +
   ylab("Log1p")
 
-p5 <- VlnPlot(t_cell, "MPO", pt.size = 0.1, group.by = "none", ncol = 1) +
+p5 <- VlnPlot(t_cell, "PRTN3", pt.size = 0.1, group.by = "tissue", ncol = 1) +
   theme(axis.title.x = element_blank(),
         plot.title = element_text()) + 
   NoLegend() +
   ylab("Log1p")
 
-p6 <- VlnPlot(t_cell, "CD69", pt.size = 0.1, group.by = "none", ncol = 1) +
+p6 <- VlnPlot(t_cell, "MPO", pt.size = 0.1, group.by = "tissue", ncol = 1) +
   theme(axis.title.x = element_blank(),
         plot.title = element_text()) + 
   NoLegend() +
@@ -101,7 +101,7 @@ p6 <- VlnPlot(t_cell, "CD69", pt.size = 0.1, group.by = "none", ncol = 1) +
 
 patchwork::wrap_plots(p1, p2, p3, p4, p5, p6, ncol = 3)
 
-pdf(file = file.path(plotDir, "VlnPlots_Stim.pdf"))
+pdf(file = file.path(plotDir, "VlnPlots.pdf"))
 patchwork::wrap_plots(p1, p2, p3, p4, p5, p6, ncol = 3)
 dev.off()
 
@@ -117,17 +117,10 @@ pathways <- msigdbr::msigdbr("Homo sapiens") %>%
 length(pathways)
 ###################### extract genes from pathways ############################
 ex_pathways <- msigdbr::msigdbr("Homo sapiens") %>%
-  filter(grepl("EXHAUST", gs_name, ignore.case = TRUE)) %>%
+  filter(grepl("ANTIMICROBIAL", gs_name, ignore.case = TRUE)) %>%
   format_pathways()
 length(ex_pathways)
 is.list(ex_pathways)
-genes <- c()
-for(i in 1:length(ex_pathways)){
-  genes <- c(genes, ex_pathways[[i]]$Genes)
-}
-genes <- unique(genes)
-genes
-
 # function to extarct genes from pathways
 extract_genes <- function(pathways){
   genes <- c()
