@@ -326,7 +326,7 @@ counts_de %>%
   arrange(FDR) %>%
   write_csv(file.path(dirPath, "results", "deBM-D3Hyp-D0_results_ordered.csv"))
 
-topgenes_symbols <- c("DEFA1", "DEFA4", "ELANE", "CD177", "CXCL12", "PRTN3", "DEFA3", "FABP4", "HILPDA")
+topgenes_symbols <- c("DEFA1", "DEFA4", "ELANE", "CD177", "CXCL12", "PRTN3", "DEFA3", "FABP4", "MPO")
 
 strip_chart <-
   counts_scaled %>%
@@ -658,7 +658,7 @@ counts_de %>%
   arrange(FDR) %>%
   write_csv(file.path(dirPath, "results", "deBM-D3Hyp-D0_results_ordered.csv"))
 
-topgenes_symbols <- c("DEFA1", "DEFA4", "ELANE", "CD177", "CXCL12", "PRTN3", "DEFA3", "FABP4", "HILPDA")
+topgenes_symbols <- c("DEFA1", "EGLN3", "ELANE", "CD177", "CXCL12", "PRTN3", "DEFA3", "FABP4", "HILPDA")
 
 strip_chart <-
   counts_scaled %>%
@@ -676,7 +676,7 @@ strip_chart <-
 
 strip_chart
 
-pdf(file = file.path(plotDir, "stripchart_12genes.pdf"))
+pdf(file = file.path(plotDir, "stripchart_12genesPBD3-D0.pdf"))
 strip_chart
 dev.off()
 
