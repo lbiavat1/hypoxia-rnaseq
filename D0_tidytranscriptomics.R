@@ -5,6 +5,7 @@ rm(list = ls())
 library(tidyverse)
 library(tidybulk)
 library(tidyHeatmap)
+library(ComplexHeatmap)
 library(ggrepel)
 library(plotly)
 library(GGally)
@@ -120,7 +121,7 @@ counts_scaled %>%
   facet_wrap(~source) +
   scale_x_log10() +
   theme_bw()
-ggsave(file.path(plotDir, "counts_scaled.jpeg"), device = "jpeg")
+# ggsave(file.path(plotDir, "counts_scaled.pdf"), device = "pdf")
 
 counts_scaled %>%
   filter(.abundant) %>%
@@ -131,7 +132,7 @@ counts_scaled %>%
   facet_wrap(~source) +
   scale_y_log10() +
   theme_bw()
-ggsave(file.path(plotDir, "counts_scaled_boxplot.jpeg"), device = "jpeg")
+# ggsave(file.path(plotDir, "counts_scaled_boxplot.pdf"), device = "pdf")
 
 counts_scaled %>% group_by(sample) %>%
   summarise(total_reads=sum(counts))
@@ -139,7 +140,7 @@ counts_scaled %>% group_by(sample) %>%
 ggplot(counts_scaled, mapping = aes(x = sample, weight = counts, fill = sample)) +
   geom_bar() +
   theme(axis.text.x = element_blank())
-ggsave(file.path(plotDir, "count_reads_per_sample.jpeg"), device = "jpeg")
+# ggsave(file.path(plotDir, "count_reads_per_sample.pdf"), device = "pdf")
 
 counts_scal_PCA <-
   counts_scaled %>%
@@ -155,7 +156,7 @@ counts_scal_PCA %>%
   geom_text_repel(aes(label = ""), show.legend = FALSE) +
   stat_ellipse(type = "norm", level = 0.7) +
   theme_bw()
-ggsave(file.path(plotDir, "PCA_top500.jpeg"), device = "jpeg")
+# ggsave(file.path(plotDir, "PCA_top100.pdf"), device = "pdf")
 # Reduce data dimensionality with arbitrary number of dimensions
 tt_mds <- counts_scaled %>% reduce_dimensions(method = "MDS", .dims = 6, top = 500)
 
@@ -166,7 +167,7 @@ tt_mds %>%
   stat_ellipse(level = 0.7, type = "norm") +
   geom_text_repel(aes(label = ""), show.legend = FALSE) +
   theme_bw()
-ggsave(file.path(plotDir, "MDS_top500.jpeg"), device = "jpeg")
+# ggsave(file.path(plotDir, "MDS_top500.pdf"), device = "pdf")
 
 
 row_labels <- c("DEFA1", "DEFA3", "DEFA4", "ELANE", "CD177", "PRTN3", "MPO", "CXCL12", "FABP4", "PKLR")
@@ -183,41 +184,47 @@ name_list <- name_list %>%
   pull(name_list)
 
 
-# hm <- counts_scaled %>%
-#   
-#   # filter lowly abundant
-#   filter(.abundant) %>%
-#   
-#   # extract most variable genes
-#   keep_variable( .abundance = counts_scaled, top = 100) %>%
-#   
-#   as_tibble() %>%
-#   
-#   mutate(genes = feature) %>%
-# 
-#   # create heatmap
-#     heatmap(
-#     .column = sample,
-#     .row = genes,
-#     .value = counts_scaled,
-#     row_names_gp = gpar(fontsize = 7),
-#     transform = log1p,
-#     palette_value = c("blue", "white", "red"),
-#     show_column_names = FALSE,
-#     show_row_names = TRUE,
-#     column_km = 2,
-#     row_km = 3,
-#     row_labels = name_list
-#   ) %>%
-#   add_tile(c(Tissue))
+hm <- counts_scaled %>%
+
+  # filter lowly abundant
+  filter(.abundant) %>%
+
+  # extract most variable genes
+  keep_variable( .abundance = counts_scaled, top = 100) %>%
+
+  as_tibble() %>%
+
+  mutate(genes = feature) %>%
+
+  # create heatmap
+    heatmap(
+    .column = sample,
+    .row = genes,
+    .value = counts_scaled,
+    # row_names_gp = gpar(fontsize = 4),
+    transform = log1p,
+    palette_value = c("blue", "white", "red"),
+    show_column_names = FALSE,
+    show_row_names = TRUE,
+    column_km = 2,
+    row_km = 3,
+    row_title = "",
+    row_title_gp = grid::gpar(fill = c("red", "blue", "green"), font = c(1,2,3)),
+    row_labels = name_list
+  ) %>%
+  add_tile(c(Tissue))
+hm
+# pdf(file = file.path(plotDir, "heatmap_top100_RowClusters.pdf"))
 # hm
+# dev.off()
+
 hm <- counts_scaled %>%
   
   # filter lowly abundant
   filter(.abundant) %>%
   
   # extract most variable genes
-  keep_variable( .abundance = counts_scaled, top = 100) %>%
+  keep_variable( .abundance = counts_scaled, top = 500) %>%
   
   as_tibble() %>%
   
@@ -228,42 +235,64 @@ hm <- counts_scaled %>%
     .column = sample,
     .row = genes,
     .value = counts_scaled,
-    annotation = c(Tissue),
     transform = log1p,
     palette_value = c("blue", "white", "red"),
     show_column_names = FALSE,
-    show_row_names = TRUE,
+    show_row_names = FALSE,
     column_km = 2,
-    row_km = 4,
-    row_labels = name_list
+    row_km = 3,
+    row_title = "%s",
+    row_title_gp = grid::gpar(fill = c("red", "blue", "green"), font = 1:3)
+  ) %>%
+  add_tile(Tissue)
+hm
+
+# pdf(file = file.path(plotDir, "heatmap_top500_RowClusters.pdf"))
+# hm
+# dev.off()
+
+
+# DESeq2
+counts_de_DESeq2 <- counts_scaled %>%
+  test_differential_abundance(
+    .formula = ~ 0 + Tissue + ID,
+    .contrasts = list(c("Tissue", "BM", "PB")),
+    method = "DESeq2",
+    omit_contrast_in_colnames = TRUE
   )
-hm
 
-pdf(file = file.path(plotDir, "heatmap_top100_selectNames.pdf"))
-hm
-dev.off()
-
+# edgeR
 counts_de <- counts_scaled %>%
   test_differential_abundance(
     .formula = ~ 0 + Tissue + ID,
     .contrasts = c("TissueBM - TissuePB"),
+    method = "edgeR_quasi_likelihood",
     omit_contrast_in_colnames = TRUE
   )
 
 
-counts_de %>% pivot_transcript(.transcript = feature) %>% 
+deseq2 <- counts_de_DESeq2 %>% pivot_transcript(.transcript = feature) %>% 
+  filter(.abundant) %>% arrange(desc(log2FoldChange)) %>% pull(feature) %>% head(50)
+
+edgeR <- counts_de %>% pivot_transcript(.transcript = feature) %>% 
   filter(.abundant) %>% arrange(desc(logFC)) %>% pull(feature) %>% head(50)
+
+sum(deseq2 %in% edgeR)/length(deseq2)
+
+
 
 topgenes <-
   counts_de %>%
   pivot_transcript() %>%
-  arrange(PValue) %>%
-  head(10)
+  arrange(FDR) %>%
+  head(20)
 
 topgenes_symbols <- topgenes %>% pull(feature)
+topgenes_symbols
 
 topgenes_symbols <- c(topgenes_symbols, "FABP4", "DEFA1", "DEFA3")
-topgenes_symbols <- topgenes_symbols[-c(29)]
+topgenes_symbols <- topgenes_symbols[-c(18)]
+topgenes_symbols
 
 volcano <- counts_de %>%
   pivot_transcript() %>%
@@ -284,9 +313,10 @@ volcano <- counts_de %>%
   scale_size_discrete(range = c(0, 2)) +
   theme_bw()
 volcano
-pdf(file = file.path(plotDir, "volcano_plot.pdf"))
-volcano
-dev.off()
+
+# pdf(file = file.path(plotDir, "volcano_plot.pdf"))
+# volcano
+# dev.off()
 
 # informative MA plot
 maplot <- counts_de %>%
@@ -306,15 +336,22 @@ maplot <- counts_de %>%
   scale_size_discrete(range = c(0, 2)) +
   theme_bw()
 maplot
-pdf(file = file.path(plotDir, "MAplot.pdf"))
-maplot
-dev.off()
+
+# pdf(file = file.path(plotDir, "MAplot.pdf"))
+# maplot
+# dev.off()
 
 counts_de %>%
   filter(.abundant) %>%
   pivot_transcript(.transcript = feature) %>%
   arrange(FDR) %>%
-  write_csv(file.path(dirPath, "results", "deBM-PB_results_ordered.csv"))
+  write_csv(file.path(dirPath, "results", "deBM-PBedgeR_results_ordered.csv"))
+
+counts_de_DESeq2 %>%
+  filter(.abundant) %>%
+  pivot_transcript(.transcript = feature) %>%
+  arrange(desc(stat)) %>%
+  write_csv(file.path(dirPath, "results", "deBM-PBDESeq2_results_ordered.csv"))
 
 topgenes_symbols <- c("DEFA1", "DEFA4", "ELANE", "CD177", "CXCL12", "PRTN3", "DEFA3", "FABP4", "PKLR")
 
@@ -334,13 +371,15 @@ strip_chart <-
 
 strip_chart
 
-pdf(file = file.path(plotDir, "stripchart_12genes.pdf"))
+pdf(file = file.path(plotDir, "stripchart_select9genes.pdf"))
 strip_chart
 dev.off()
 
 # deconvolve cellularity
 counts_de_cibersort <- deconvolve_cellularity(counts_de, action = "get", cores = 1,
-                                              method = "llsr", prefix = "cibersort__")
+                                              method = "cibersort", prefix = "cibersort__")
+
+counts_de_cibersort
 
 counts_de_cibersort %>%
   pivot_longer(
@@ -353,43 +392,3 @@ counts_de_cibersort %>%
   geom_boxplot() +
   facet_wrap(~ sample) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), aspect.ratio=1/5)
-
-
-############################### DESeq2 - std workflow ##########################
-
-# Pre-Filtering
-
-dim(dds)
-keep <- rowSums( counts(dds) ) >= 25
-summary(keep)
-dds <- dds[ keep, ]
-dim(dds)
-
-# varianceStabilizingTransformation
-vsd <- vst(dds, blind = TRUE)
-DESeq2::plotPCA(vsd, intgroup = "Tissue", ntop = 500) +
-  stat_ellipse(level = 0.7, type = "norm")
-
-dds$Tissue <- relevel(dds$Tissue, ref = "PB")
-dds <- DESeq(dds)
-res <- results(dds, contrast = c("Tissue", "BM", "PB"))
-res
-DESeq2::plotMA(res, ylim = c(-2,2))
-
-resultsNames(dds)
-resLFC <- lfcShrink(dds, coef = "Tissue_BM_vs_PB", type = "apeglm")
-DESeq2::plotMA(resLFC, ylim = c(-2,2))
-resLFC
-sum(resLFC$padj < 0.01, na.rm = TRUE)
-res01 <- results(dds, contrast = c("Tissue", "BM", "PB"), alpha = 0.01)
-summary(res01)
-
-resIHW <- results(dds, contrast = c("Tissue", "BM", "PB"), alpha = 0.01, filterFun = ihw)
-summary(resIHW)
-metadata(resIHW)$ihwResult
-
-resIHW %>% 
-  as.data.frame() %>%
-  rownames_to_column(var = "id") %>%
-  as_tibble() %>%
-  write_csv(file = file.path(file.path(dirPath, "results", "deBM-PB_resultsDESeq2IHW.csv")))
