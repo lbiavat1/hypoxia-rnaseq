@@ -59,8 +59,9 @@ setwd(savePath)
 csvPath <- saveDir
 setwd(csvPath)
 files <- list.files(path = ".", pattern = ".csv$", full.names = FALSE)
+files
+
 BMvsPB_de <- read_csv(files[1])
-BMvsPB_ihw <- read_csv(files[2])
 
 # ============================ Plot Settings ==============================
 # Use colourblind-friendly colours
@@ -86,67 +87,81 @@ custom_theme <-
       )
   )
 
-############################## Volcano plot #################################
-topgenes <-
-  BMvsPB_de %>%
-  mutate(significant = FDR < 0.01 & abs(logFC) >= 2.0) %>%
-  filter(significant) %>%
-  arrange(FDR) %>%
-  head(20)
-
-topgenes_symbols <- topgenes %>% pull(feature) %>% c(., "FABP4")
-
-plot <- BMvsPB_de %>%
-  
-  # Subset data
-  mutate(FDR = ifelse(is.na(FDR), 1, FDR)) %>%
-  mutate(significant = FDR < 0.01 & abs(logFC) >= 2.0) %>%
-  mutate(feature = ifelse(feature %in% topgenes_symbols, as.character(feature), "")) %>%
-  
-  # Plot
-  ggplot(aes(x = logFC, y = FDR, label = feature)) +
-  geom_point(aes(color = significant, size = significant, alpha = significant)) +
-  geom_text_repel() +
-  ggtitle("BM vs PB - Resting") + 
-  
-  # Custom scales
-  scale_y_continuous(trans = "log10_reverse") +
-  scale_color_manual(values = c("black", "#e11f28")) +
-  scale_size_discrete(range = c(0, 2)) +
-  theme_bw()
-plot
+# ===================== Pathway analysis =======================================
 
 # load msigdbr
 library(msigdbr)
 
-hallmark.path <- paste(filePath, "gene_sets", "h.all.v7.1.symbols.gmt", sep = "/")
-pathway.HALLMARK <- gmtPathways(hallmark.path)
-HALLMARK <- read.gmt(hallmark.path)
-
-hallmark <- msigdbr("Homo sapiens", "H") %>% format_pathways()
-
-c7.path <- paste(filePath, "gene_sets", "c7.all.v7.1.symbols.gmt", sep = "/")
-pathway.C7 <- gmtPathways(c7.path)
-C7 <- read.gmt(c7.path)
+# make it tidy
+metab <- read_csv(file.path(saveDir, "gene_sets", "combined_metabolic_pathways.csv"))
+colnames(metab) <- c("term", paste0("gene", c(1:739)))
+metab <- tidyr::gather(metab, key = genes, value = gene, -term) %>% 
+  arrange(term) %>% dplyr::select(term, gene)
+metab
 
 
-BMvsPB_rnk <- BMvsPB_ihw %>%
+# pws <- c("kegg", "reactome", "biocarta", "wiki", "pid")
+# pathways <- msigdbr::msigdbr("Homo sapiens") %>%
+#   filter(grepl("ANTIMICROBIAL", gs_name, ignore.case = TRUE) |
+#            grepl("PROSTAGLANDIN", gs_name, ignore.case = TRUE) |
+#            grepl("HALLMARK", x = gs_name, ignore.case = TRUE)) %>%
+#   dplyr::select(gs_name, gene_symbol) %>%
+#   mutate(term = gs_name, gene = gene_symbol) %>%
+#   dplyr::select(term, gene)
+
+pws <- c("kegg", "reactome", "biocarta", "wiki", "pid")
+pathways <- msigdbr::msigdbr("Homo sapiens") %>%
+  filter(grepl(paste(pws, collapse = "|"), gs_subcat, ignore.case = TRUE) |
+           grepl("HALLMARK", x = gs_name, ignore.case = TRUE)) %>%
+  dplyr::select(gs_name, gene_symbol) %>%
+  mutate(term = gs_name, gene = gene_symbol) %>%
+  dplyr::select(term, gene)
+
+# pws <- c("kegg", "reactome", "biocarta", "wiki", "pid")
+# msigdbr_collections() %>% as.data.frame()
+# pathways <- msigdbr(species = "Homo sapiens", category = "C7") %>%
+#   dplyr::select(gs_name, gene_symbol) %>%
+#   mutate(term = gs_name, gene = gene_symbol) %>%
+#   dplyr::select(term, gene)
+
+
+pathways
+length(unique(pathways$term))
+
+
+BMvsPB_rnk <- BMvsPB_de %>%
+  filter(.abundant) %>%
   mutate(padj = ifelse(is.na(padj), 1, padj)) %>%
   mutate(significant = padj < 0.01 & abs(log2FoldChange) >= 2.0) %>%
   filter(significant) %>%
-  dplyr::select(id, stat) %>%
+  dplyr::select(feature, stat) %>%
   na.omit() %>%
   distinct() %>%
-  group_by(id) %>%
+  group_by(feature) %>%
   summarise(stat = mean(stat)) %>%
   arrange(desc(stat)) %>%
   deframe()
+length(BMvsPB_rnk)
 
-BMvsPB_gH <- GSEA(BMvsPB_rnk, exponent = 1, minGSSize = 2, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
-                      TERM2GENE = HALLMARK, by = "fgsea")
-BMvsPB_gH@result$ID
+BMvsPB_pathways <- GSEA(BMvsPB_rnk, exponent = 1, minGSSize = 2, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
+                      TERM2GENE = pathways, by = "fgsea")
+BMvsPB_pathways@result$ID
+dotplot(BMvsPB_pathways)
+gseaplot2(BMvsPB_pathways, geneSetID = "REACTOME_ANTIMICROBIAL_PEPTIDES")
+gseaplot2(BMvsPB_pathways, geneSetID = "REACTOME_NEUTROPHIL_DEGRANULATION")
+gseaplot2(BMvsPB_pathways, geneSetID = "REACTOME_INNATE_IMMUNE_SYSTEM")
+gseaplot2(BMvsPB_pathways, geneSetID = c("REACTOME_INNATE_IMMUNE_SYSTEM",
+                                         "REACTOME_NEUTROPHIL_DEGRANULATION",
+                                         "REACTOME_ANTIMICROBIAL_PEPTIDES"))
+pdf(file.path(plotDir, "gseaPlot_pathways.pdf"))
+gseaplot2(BMvsPB_pathways, geneSetID = c("REACTOME_INNATE_IMMUNE_SYSTEM",
+                                         "REACTOME_NEUTROPHIL_DEGRANULATION",
+                                         "REACTOME_ANTIMICROBIAL_PEPTIDES"))
+dev.off()
 
-BMvsPB_C7 <- GSEA(BMvsPB_rnk, exponent = 1, minGSSize = 2, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
-                  TERM2GENE = C7, by = "fgsea")
-head(BMvsPB_C7@result$ID)
+BMvsPB_pathways@result$ID
+BMvsPB_pathways[grep("ANTIMICROBIAL", BMvsPB_pathways@result$ID)]
+
+
+
 
