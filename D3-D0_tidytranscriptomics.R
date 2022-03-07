@@ -16,6 +16,7 @@ library(edgeR)
 library(fgsea)
 library(hciR)
 library(IHW)
+library(RColorBrewer)
 
 # Set PrimaryDirectory where this script is located
 dirname(rstudioapi::getActiveDocumentContext()$path)  
@@ -133,18 +134,18 @@ counts_scaled %>%
   facet_wrap(~source) +
   scale_x_log10() +
   theme_bw()
-ggsave(file.path(plotDir, "counts_scaled_BM.jpeg"), device = "jpeg")
+# ggsave(file.path(plotDir, "counts_scaled_BM.pdf"), device = "pdf")
 
 counts_scaled %>%
   filter(.abundant) %>%
   pivot_longer(cols = c("counts", "counts_scaled"), names_to = "source", values_to = "abundance") %>%
-  ggplot(aes(x = sample, y = abundance + 1, fill = Tissue)) +
+  ggplot(aes(x = sample, y = abundance + 1, fill = Condition)) +
   geom_boxplot() +
   geom_hline(aes(yintercept = median(abundance + 1)), colour="red") +
   facet_wrap(~source) +
   scale_y_log10() +
   theme_bw()
-ggsave(file.path(plotDir, "counts_scaled_boxplot_BM.jpeg"), device = "jpeg")
+# ggsave(file.path(plotDir, "counts_scaled_boxplot_BM.pdf"), device = "pdf")
 
 counts_scaled %>% group_by(sample) %>%
   summarise(total_reads=sum(counts))
@@ -152,7 +153,7 @@ counts_scaled %>% group_by(sample) %>%
 ggplot(counts_scaled, mapping = aes(x = sample, weight = counts, fill = sample)) +
   geom_bar() +
   theme(axis.text.x = element_blank())
-ggsave(file.path(plotDir, "count_reads_per_sample_BM.jpeg"), device = "jpeg")
+# ggsave(file.path(plotDir, "count_reads_per_sample_BM.pdf"), device = "pdf")
 
 counts_scal_PCA <-
   counts_scaled %>%
@@ -168,7 +169,7 @@ counts_scal_PCA %>%
   geom_text_repel(aes(label = ""), show.legend = FALSE) +
   stat_ellipse(type = "norm", level = 0.7) +
   theme_bw()
-ggsave(file.path(plotDir, "PCA_top100_BM.jpeg"), device = "jpeg")
+# ggsave(file.path(plotDir, "PCA_top500_BM.pdf"), device = "pdf")
 # Reduce data dimensionality with arbitrary number of dimensions
 tt_mds <- counts_scaled %>% reduce_dimensions(method = "MDS", .dims = 6, top = 100)
 
@@ -179,7 +180,7 @@ tt_mds %>%
   stat_ellipse(level = 0.7, type = "norm") +
   geom_text_repel(aes(label = ""), show.legend = FALSE) +
   theme_bw()
-ggsave(file.path(plotDir, "MDS_top100_BM.jpeg"), device = "jpeg")
+# ggsave(file.path(plotDir, "MDS_top100_BM.pdf"), device = "pdf")
 
 
 row_labels <- c("DEFA1", "DEFA3", "DEFA4", "ELANE", "CD177", "PRTN3", "MPO", "CXCL12", "FABP4", "PKLR")
@@ -195,35 +196,45 @@ name_list <- name_list %>%
   mutate(name_list = ifelse(value %in% row_labels, as.character(value), "")) %>%
   pull(name_list)
 
+display.brewer.all(colorblindFriendly = TRUE)
+brewer.pal(n = 4, "Paired")
 
-# hm <- counts_scaled %>%
-#   
-#   # filter lowly abundant
-#   filter(.abundant) %>%
-#   
-#   # extract most variable genes
-#   keep_variable( .abundance = counts_scaled, top = 100) %>%
-#   
-#   as_tibble() %>%
-#   
-#   mutate(genes = feature) %>%
-# 
-#   # create heatmap
-#     heatmap(
-#     .column = sample,
-#     .row = genes,
-#     .value = counts_scaled,
-#     row_names_gp = gpar(fontsize = 7),
-#     transform = log1p,
-#     palette_value = c("blue", "white", "red"),
-#     show_column_names = FALSE,
-#     show_row_names = TRUE,
-#     column_km = 2,
-#     row_km = 3,
-#     row_labels = name_list
-#   ) %>%
-#   add_tile(c(Tissue))
+hm <- counts_scaled %>%
+
+  # filter lowly abundant
+  filter(.abundant) %>%
+
+  # extract most variable genes
+  keep_variable( .abundance = counts_scaled, top = 100) %>%
+
+  as_tibble() %>%
+
+  mutate(genes = feature) %>%
+
+  # create heatmap
+    heatmap(
+    .column = sample,
+    .row = genes,
+    .value = counts_scaled,
+    row_names_gp = gpar(fontsize = 4),
+    transform = log1p,
+    palette_value = c("blue", "white", "red"),
+    show_column_names = FALSE,
+    show_row_names = TRUE,
+    column_km = 3,
+    column_km_repeats = 100,
+    row_km = 4,
+    row_km_repeats = 100,
+    row_title = "%s",
+    row_title_gp = grid::gpar(fill = c("#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C"), font = 1:4)
+  ) %>%
+  add_tile(c(Condition))
+hm
+
+# pdf(file = file.path(plotDir, "heatmap_top100_kmClusters_BM.pdf"))
 # hm
+# dev.off()
+
 hm <- counts_scaled %>%
   
   # filter lowly abundant
@@ -241,50 +252,75 @@ hm <- counts_scaled %>%
     .column = sample,
     .row = genes,
     .value = counts_scaled,
-    annotation = c(Condition),
     transform = log1p,
     palette_value = c("blue", "white", "red"),
     show_column_names = FALSE,
-    show_row_names = FALSE,
-    column_km = 2,
-    row_km = 5
-  )
+    show_row_names = TRUE,
+    column_km = 3,
+    column_km_repeats = 100,
+    row_km = 4,
+    row_km_repeats = 100,
+    row_title = "%s",
+    row_title_gp = grid::gpar(fill = c("#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C"), font = 1:4)
+  ) %>%
+  add_tile(c(Condition))
 hm
 
-pdf(file = file.path(plotDir, "heatmap_top500_BM.pdf"))
-hm
-dev.off()
-# contrasts , "ConditionNorm - ConditionRest", "ConditionHypo - ConditionNorm"
-counts_de <- counts_scaled %>%
+# pdf(file = file.path(plotDir, "heatmap_top500_names_BM.pdf"))
+# hm
+# dev.off()
+
+counts_de_Hyp <- counts_scaled %>%
   test_differential_abundance(
     .formula = ~ 0 + Condition + ID,
-    .contrasts = c("ConditionHypo - ConditionNorm"),
+    method = "DESeq2",
+    .contrasts = list(c("Condition", "Hypo", "Rest")),
+    omit_contrast_in_colnames = TRUE
+  )
+counts_de_Nor <- counts_scaled %>%
+  test_differential_abundance(
+    .formula = ~ 0 + Condition + ID,
+    method = "DESeq2",
+    .contrasts = list(c("Condition", "Norm", "Rest")),
     omit_contrast_in_colnames = TRUE
   )
 
 
-counts_de %>% pivot_transcript(.transcript = feature) %>% 
-  filter(.abundant) %>% arrange(desc(logFC)) %>% pull(feature) %>% head(50)
+hyp <- counts_de_Hyp %>% pivot_transcript(.transcript = feature) %>% 
+  filter(.abundant) %>% arrange(desc(stat)) %>% pull(feature) %>% head(50)
 
-topgenes <-
-  counts_de %>%
+
+nor <- counts_de_Nor %>% pivot_transcript(.transcript = feature) %>% 
+  filter(.abundant) %>% arrange(desc(stat)) %>% pull(feature) %>% head(50)
+
+sum(hyp %in% nor)/length(hyp)
+################### Activation in Hypoxia ####################################
+
+topgenes_UP <-
+  counts_de_Hyp %>%
   filter(.abundant) %>%
   pivot_transcript() %>%
-  arrange(FDR) %>%
+  arrange(desc(stat)) %>%
   head(10)
-
+topgenes_DN <-
+  counts_de_Hyp %>%
+  filter(.abundant) %>%
+  pivot_transcript() %>%
+  arrange(stat) %>%
+  head(10)
+topgenes <- full_join(topgenes_DN, topgenes_UP)
 topgenes_symbols <- topgenes %>% pull(feature)
 
-volcano <- counts_de %>%
+volcano <- counts_de_Hyp %>%
   pivot_transcript() %>%
   
   # Subset data
   filter(.abundant) %>%
-  mutate(significant = FDR < 0.01 & abs(logFC) >= 2) %>%
+  mutate(significant = padj < 0.01 & abs(log2FoldChange) >= 2) %>%
   mutate(feature = ifelse(feature %in% topgenes_symbols, as.character(feature), "")) %>%
   
   # Plot
-  ggplot(aes(x = logFC, y = PValue, label = feature)) +
+  ggplot(aes(x = log2FoldChange, y = pvalue, label = feature)) +
   geom_point(aes(color = significant, size = significant, alpha = significant)) +
   geom_text_repel() +
   
@@ -294,39 +330,134 @@ volcano <- counts_de %>%
   scale_size_discrete(range = c(0, 2)) +
   theme_bw()
 volcano
-pdf(file = file.path(plotDir, "volcanoBMHypo-Norm_plot.pdf"))
-volcano
-dev.off()
+# pdf(file = file.path(plotDir, "volcano_BMActivationInHypoxia_plot.pdf"))
+# volcano
+# dev.off()
 
 # informative MA plot
-maplot <- counts_de %>%
+maplot <- counts_de_Hyp %>%
   pivot_transcript() %>%
   
   # Subset data
   filter(.abundant) %>%
-  mutate(significant = FDR < 0.01 & abs(logFC) >= 2) %>%
+  mutate(significant = padj < 0.01 & abs(log2FoldChange) >= 2) %>%
   mutate(feature = ifelse(feature %in% topgenes_symbols, as.character(feature), "")) %>%
   
   
   # Plot
-  ggplot(aes(x = logCPM, y = logFC, label = feature)) +
+  ggplot(aes(x = lfcSE, y = log2FoldChange, label = feature)) +
   geom_point(aes(color = significant, size = significant, alpha = significant)) +
   geom_text_repel() +
   scale_color_manual(values=c("black", "#e11f28")) +
   scale_size_discrete(range = c(0, 2)) +
   theme_bw()
 maplot
-pdf(file = file.path(plotDir, "MAplot.pdf"))
-maplot
-dev.off()
+# pdf(file = file.path(plotDir, "MA_BMActivationInHypoxia_plot.pdf"))
+# maplot
+# dev.off()
 
-counts_de %>%
+counts_de_Hyp %>%
   filter(.abundant) %>%
   pivot_transcript(.transcript = feature) %>%
-  arrange(FDR) %>%
-  write_csv(file.path(dirPath, "results", "deBM-D3Hyp-D0_results_ordered.csv"))
+  arrange(desc(stat)) %>%
+  write_csv(file.path(saveDir, "deBM-D3Hyp-D0_results_ordered.csv"))
 
-topgenes_symbols <- c("DEFA1", "DEFA4", "ELANE", "CD177", "CXCL12", "PRTN3", "DEFA3", "FABP4", "MPO")
+################### Activation in Normoxia ####################################
+
+topgenes_UP <-
+  counts_de_Nor %>%
+  filter(.abundant) %>%
+  pivot_transcript() %>%
+  arrange(desc(stat)) %>%
+  head(10)
+topgenes_DN <-
+  counts_de_Nor %>%
+  filter(.abundant) %>%
+  pivot_transcript() %>%
+  arrange(stat) %>%
+  head(10)
+topgenes <- full_join(topgenes_DN, topgenes_UP)
+topgenes_symbols <- topgenes %>% pull(feature)
+
+volcano <- counts_de_Nor %>%
+  pivot_transcript() %>%
+  
+  # Subset data
+  filter(.abundant) %>%
+  mutate(significant = padj < 0.01 & abs(log2FoldChange) >= 2) %>%
+  mutate(feature = ifelse(feature %in% topgenes_symbols, as.character(feature), "")) %>%
+  
+  # Plot
+  ggplot(aes(x = log2FoldChange, y = pvalue, label = feature)) +
+  geom_point(aes(color = significant, size = significant, alpha = significant)) +
+  geom_text_repel() +
+  
+  # Custom scales
+  scale_y_continuous(trans = "log10_reverse") +
+  scale_color_manual(values = c("black", "#e11f28")) +
+  scale_size_discrete(range = c(0, 2)) +
+  theme_bw()
+volcano
+
+# pdf(file = file.path(plotDir, "volcano_BMActivationInNormoxia_plot.pdf"))
+# volcano
+# dev.off()
+
+# informative MA plot
+maplot <- counts_de_Nor %>%
+  pivot_transcript() %>%
+  
+  # Subset data
+  filter(.abundant) %>%
+  mutate(significant = padj < 0.01 & abs(log2FoldChange) >= 2) %>%
+  mutate(feature = ifelse(feature %in% topgenes_symbols, as.character(feature), "")) %>%
+  
+  
+  # Plot
+  ggplot(aes(x = lfcSE, y = log2FoldChange, label = feature)) +
+  geom_point(aes(color = significant, size = significant, alpha = significant)) +
+  geom_text_repel() +
+  scale_color_manual(values=c("black", "#e11f28")) +
+  scale_size_discrete(range = c(0, 2)) +
+  theme_bw()
+maplot
+# pdf(file = file.path(plotDir, "MA_BMActivationInNormoxia_plot.pdf"))
+# maplot
+# dev.off()
+
+counts_de_Nor %>%
+  filter(.abundant) %>%
+  pivot_transcript(.transcript = feature) %>%
+  arrange(desc(stat)) %>%
+  write_csv(file.path(saveDir, "deBM-D3Nor-D0_results_ordered.csv"))
+
+hh <- counts_de_Hyp %>% filter(.abundant) %>% pivot_transcript(.transcript = feature) %>%
+  filter(padj < 0.01) %>%
+  filter(abs(log2FoldChange) >=2 ) %>%
+  arrange(desc(stat)) %>%
+  pull(feature)
+
+hh_sig_up <- counts_de_Hyp  %>% filter(.abundant) %>% pivot_transcript(.transcript = feature) %>%
+  filter(padj < 0.01) %>%
+  filter(abs(log2FoldChange) >=2 ) %>% pull(feature)
+
+nn <- counts_de_Nor %>% filter(.abundant) %>% pivot_transcript(.transcript = feature) %>%
+  filter(padj < 0.01) %>%
+  filter(abs(log2FoldChange) >=2 ) %>%
+  arrange(desc(stat)) %>%
+  pull(feature)
+
+nn_sig_up <- counts_de_Nor %>% filter(.abundant) %>% pivot_transcript(.transcript = feature) %>%
+  filter(padj < 0.01) %>%
+  filter(abs(log2FoldChange) >=2 ) %>% pull(feature)
+
+hh %in% nn_sig_up
+hh[!(hh %in% nn_sig_up)] %>% head(10)
+
+nn %in% hh_sig_up
+nn[!(nn %in% hh_sig_up)] %>% head(10)
+
+topgenes_symbols <- c(hh[!(hh %in% nn_sig_up)] %>% head(10), nn[!(nn %in% hh_sig_up)] %>% head(10))
 
 strip_chart <-
   counts_scaled %>%
@@ -344,12 +475,12 @@ strip_chart <-
 
 strip_chart
 
-pdf(file = file.path(plotDir, "stripchart_12genes_BMD3-D0.pdf"))
-strip_chart
-dev.off()
+# pdf(file = file.path(plotDir, "stripchart_HvsNgenes_BMD3-D0.pdf"))
+# strip_chart
+# dev.off()
 
 # deconvolve cellularity
-counts_de_cibersort <- deconvolve_cellularity(counts_de, action = "get", cores = 1,
+counts_de_cibersort <- deconvolve_cellularity(counts_de_Hyp, action = "get", cores = 1,
                                               method = "llsr", prefix = "cibersort__")
 
 counts_de_cibersort %>%
@@ -381,17 +512,20 @@ rowname_cts <- column_to_rownames(rowname_cts)
 colnames(rowname_cts)
 head(rowname_cts)
 
-#BM samples only
+#PB samples only
 grep("PB", colnames(rowname_cts))
 rowname_cts <- rowname_cts[, grep("PB", colnames(rowname_cts))]
 rowname_cts["DEFA1", ]
 
-# remove DA samples
-grep("DA", colnames(rowname_cts))
-rowname_cts <- rowname_cts[, -grep("DA", colnames(rowname_cts))]
-# remove TP samples
-grep("TP", colnames(rowname_cts))
-rowname_cts <- rowname_cts[, -grep("TP", colnames(rowname_cts))]
+# # remove DA samples
+# grep("DA", colnames(rowname_cts))
+# rowname_cts <- rowname_cts[, -grep("DA", colnames(rowname_cts))]
+# # remove TP samples
+# grep("TP", colnames(rowname_cts))
+# rowname_cts <- rowname_cts[, -grep("TP", colnames(rowname_cts))]
+# remove MS samples
+grep("MS", colnames(rowname_cts))
+rowname_cts <- rowname_cts[, -grep("MS", colnames(rowname_cts))]
 
 # only integer values
 rowname_cts <- round(rowname_cts)
@@ -407,19 +541,25 @@ is_tibble(colData)
 names(colData)[1] <- "rowname"
 col.data <- column_to_rownames(colData)
 
-# BM samples only
+# PB samples only
 grep("PB", rownames(col.data))
 col.data <- col.data[grep("PB", rownames(col.data)), ]
 col.data
 
-# remove DA samples
-grep("DA", rownames(col.data))
-col.data <- col.data[-grep("DA", rownames(col.data)), ]
+# # remove DA samples
+# grep("DA", rownames(col.data))
+# col.data <- col.data[-grep("DA", rownames(col.data)), ]
+# col.data
+# # remove TP samples
+# grep("TP", rownames(col.data))
+# col.data <- col.data[-grep("TP", rownames(col.data)), ]
+# col.data
+
+# remove MS samples
+grep("MS", rownames(col.data))
+col.data <- col.data[-grep("MS", rownames(col.data)), ]
 col.data
-# remove TP samples
-grep("TP", rownames(col.data))
-col.data <- col.data[-grep("TP", rownames(col.data)), ]
-col.data
+
 # 2 indicates columns, 1 indicates rows
 col.data <- as.data.frame(apply(col.data, 2, as.factor))
 
@@ -465,18 +605,18 @@ counts_scaled %>%
   facet_wrap(~source) +
   scale_x_log10() +
   theme_bw()
-ggsave(file.path(plotDir, "counts_scaled_PB.jpeg"), device = "jpeg")
+# ggsave(file.path(plotDir, "counts_scaled_PB.pdf"), device = "pdf")
 
 counts_scaled %>%
   filter(.abundant) %>%
   pivot_longer(cols = c("counts", "counts_scaled"), names_to = "source", values_to = "abundance") %>%
-  ggplot(aes(x = sample, y = abundance + 1, fill = Tissue)) +
+  ggplot(aes(x = sample, y = abundance + 1, fill = Condition)) +
   geom_boxplot() +
   geom_hline(aes(yintercept = median(abundance + 1)), colour="red") +
   facet_wrap(~source) +
   scale_y_log10() +
   theme_bw()
-ggsave(file.path(plotDir, "counts_scaled_boxplot_PB.jpeg"), device = "jpeg")
+# ggsave(file.path(plotDir, "counts_scaled_boxplot_PB.pdf"), device = "pdf")
 
 counts_scaled %>% group_by(sample) %>%
   summarise(total_reads=sum(counts))
@@ -484,7 +624,7 @@ counts_scaled %>% group_by(sample) %>%
 ggplot(counts_scaled, mapping = aes(x = sample, weight = counts, fill = sample)) +
   geom_bar() +
   theme(axis.text.x = element_blank())
-ggsave(file.path(plotDir, "count_reads_per_sample_PB.jpeg"), device = "jpeg")
+# ggsave(file.path(plotDir, "count_reads_per_sample_PB.pdf"), device = "pdf")
 
 counts_scal_PCA <-
   counts_scaled %>%
@@ -498,64 +638,25 @@ counts_scal_PCA %>%
   ggplot(aes(x = PC1, y = PC2, colour = Condition, shape = Tissue)) +
   geom_point(size = 4) +
   geom_text_repel(aes(label = ""), show.legend = FALSE) +
-  # stat_ellipse(type = "norm", level = 0.7) +
+  stat_ellipse(type = "norm", level = 0.7) +
   theme_bw()
-ggsave(file.path(plotDir, "PCA_top100_PB.jpeg"), device = "jpeg")
+# ggsave(file.path(plotDir, "PCA_top100_PB.pdf"), device = "pdf")
 # Reduce data dimensionality with arbitrary number of dimensions
-tt_mds <- counts_scaled %>% reduce_dimensions(method = "MDS", .dims = 6, top = 100)
+tt_mds <- counts_scaled %>% reduce_dimensions(method = "MDS", .dims = 6, top = 500)
 
 tt_mds %>%
   pivot_sample() %>%
   ggplot(aes(x = Dim1, y = Dim2, colour = Condition, shape = Tissue)) +
   geom_point(size = 4) +
-  # stat_ellipse(level = 0.7, type = "norm") +
+  stat_ellipse(level = 0.7, type = "norm") +
   geom_text_repel(aes(label = ""), show.legend = FALSE) +
   theme_bw()
-ggsave(file.path(plotDir, "MDS_top100_PB.jpeg"), device = "jpeg")
+# ggsave(file.path(plotDir, "MDS_top500_PB.pdf"), device = "pdf")
 
 
-row_labels <- c("DEFA1", "DEFA3", "DEFA4", "ELANE", "CD177", "PRTN3", "MPO", "CXCL12", "FABP4", "PKLR")
-name_list <- counts_scaled %>%
-  filter(.abundant) %>%
-  keep_variable( .abundance = counts_scaled, top = 100) %>%
-  as_tibble() %>%
-  pull(feature)
-name_list <- unique(name_list)
-name_list
-name_list <- name_list %>% 
-  as_tibble() %>%
-  mutate(name_list = ifelse(value %in% row_labels, as.character(value), "")) %>%
-  pull(name_list)
+display.brewer.all(colorblindFriendly = TRUE)
+brewer.pal(n = 4, "Paired")
 
-
-# hm <- counts_scaled %>%
-#   
-#   # filter lowly abundant
-#   filter(.abundant) %>%
-#   
-#   # extract most variable genes
-#   keep_variable( .abundance = counts_scaled, top = 100) %>%
-#   
-#   as_tibble() %>%
-#   
-#   mutate(genes = feature) %>%
-# 
-#   # create heatmap
-#     heatmap(
-#     .column = sample,
-#     .row = genes,
-#     .value = counts_scaled,
-#     row_names_gp = gpar(fontsize = 7),
-#     transform = log1p,
-#     palette_value = c("blue", "white", "red"),
-#     show_column_names = FALSE,
-#     show_row_names = TRUE,
-#     column_km = 2,
-#     row_km = 3,
-#     row_labels = name_list
-#   ) %>%
-#   add_tile(c(Tissue))
-# hm
 hm <- counts_scaled %>%
   
   # filter lowly abundant
@@ -573,50 +674,112 @@ hm <- counts_scaled %>%
     .column = sample,
     .row = genes,
     .value = counts_scaled,
-    annotation = c(Condition),
+    row_names_gp = gpar(fontsize = 4),
     transform = log1p,
     palette_value = c("blue", "white", "red"),
     show_column_names = FALSE,
     show_row_names = TRUE,
-    column_km = 2,
-    row_km = 5
-  )
+    column_km = 3,
+    column_km_repeats = 100,
+    row_km = 4,
+    row_km_repeats = 100,
+    row_title = "%s",
+    row_title_gp = grid::gpar(fill = c("#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C"), font = 1:4)
+  ) %>%
+  add_tile(c(Condition))
 hm
 
-pdf(file = file.path(plotDir, "heatmap_top100_PB.pdf"))
+# pdf(file = file.path(plotDir, "heatmap_top100_kmClusters_PB.pdf"))
+# hm
+# dev.off()
+
+hm <- counts_scaled %>%
+  
+  # filter lowly abundant
+  filter(.abundant) %>%
+  
+  # extract most variable genes
+  keep_variable( .abundance = counts_scaled, top = 500) %>%
+  
+  as_tibble() %>%
+  
+  mutate(genes = feature) %>%
+  
+  # create heatmap
+  heatmap(
+    .column = sample,
+    .row = genes,
+    .value = counts_scaled,
+    transform = log1p,
+    palette_value = c("blue", "white", "red"),
+    show_column_names = FALSE,
+    show_row_names = FALSE,
+    column_km = 3,
+    column_km_repeats = 100,
+    row_km = 4,
+    row_km_repeats = 100,
+    row_title = "%s",
+    row_title_gp = grid::gpar(fill = c("#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C"), font = 1:4)
+  ) %>%
+  add_tile(c(Condition))
 hm
-dev.off()
-# contrasts , "ConditionNorm - ConditionRest", "ConditionHypo - ConditionNorm"
-counts_de <- counts_scaled %>%
+
+# pdf(file = file.path(plotDir, "heatmap_top500_PB.pdf"))
+# hm
+# dev.off()
+
+counts_de_Hyp <- counts_scaled %>%
   test_differential_abundance(
     .formula = ~ 0 + Condition + ID,
-    .contrasts = c("ConditionHypo - ConditionNorm"),
+    method = "DESeq2",
+    .contrasts = list(c("Condition", "Hypo", "Rest")),
     omit_contrast_in_colnames = TRUE
   )
 
+counts_de_Nor <- counts_scaled %>%
+  test_differential_abundance(
+    .formula = ~ 0 + Condition + ID,
+    method = "DESeq2",
+    .contrasts = list(c("Condition", "Norm", "Rest")),
+    omit_contrast_in_colnames = TRUE
+  )
 
-counts_de %>% pivot_transcript(.transcript = feature) %>% 
-  filter(.abundant) %>% arrange(desc(logFC)) %>% pull(feature) %>% head(50)
+hyp <- counts_de_Hyp %>% pivot_transcript(.transcript = feature) %>% 
+  filter(.abundant) %>% arrange(desc(stat)) %>% pull(feature) %>% head(50)
 
-topgenes <-
-  counts_de %>%
+
+nor <- counts_de_Nor %>% pivot_transcript(.transcript = feature) %>% 
+  filter(.abundant) %>% arrange(desc(stat)) %>% pull(feature) %>% head(50)
+
+sum(hyp %in% nor)/length(hyp)
+
+################### Activation in Hypoxia ####################################
+
+topgenes_UP <-
+  counts_de_Hyp %>%
   filter(.abundant) %>%
   pivot_transcript() %>%
-  arrange(FDR) %>%
+  arrange(desc(stat)) %>%
   head(10)
-
+topgenes_DN <-
+  counts_de_Hyp %>%
+  filter(.abundant) %>%
+  pivot_transcript() %>%
+  arrange(stat) %>%
+  head(10)
+topgenes <- full_join(topgenes_DN, topgenes_UP)
 topgenes_symbols <- topgenes %>% pull(feature)
 
-volcano <- counts_de %>%
+volcano <- counts_de_Hyp %>%
   pivot_transcript() %>%
   
   # Subset data
   filter(.abundant) %>%
-  mutate(significant = FDR < 0.01 & abs(logFC) >= 2) %>%
+  mutate(significant = padj < 0.01 & abs(log2FoldChange) >= 2) %>%
   mutate(feature = ifelse(feature %in% topgenes_symbols, as.character(feature), "")) %>%
   
   # Plot
-  ggplot(aes(x = logFC, y = PValue, label = feature)) +
+  ggplot(aes(x = log2FoldChange, y = pvalue, label = feature)) +
   geom_point(aes(color = significant, size = significant, alpha = significant)) +
   geom_text_repel() +
   
@@ -626,39 +789,134 @@ volcano <- counts_de %>%
   scale_size_discrete(range = c(0, 2)) +
   theme_bw()
 volcano
-pdf(file = file.path(plotDir, "volcanoHypo-Norm_plot.pdf"))
-volcano
-dev.off()
+# pdf(file = file.path(plotDir, "volcano_PBActivationInHypoxia_plot.pdf"))
+# volcano
+# dev.off()
 
 # informative MA plot
-maplot <- counts_de %>%
+maplot <- counts_de_Hyp %>%
   pivot_transcript() %>%
   
   # Subset data
   filter(.abundant) %>%
-  mutate(significant = FDR < 0.01 & abs(logFC) >= 2) %>%
+  mutate(significant = padj < 0.01 & abs(log2FoldChange) >= 2) %>%
   mutate(feature = ifelse(feature %in% topgenes_symbols, as.character(feature), "")) %>%
   
   
   # Plot
-  ggplot(aes(x = logCPM, y = logFC, label = feature)) +
+  ggplot(aes(x = lfcSE, y = log2FoldChange, label = feature)) +
   geom_point(aes(color = significant, size = significant, alpha = significant)) +
   geom_text_repel() +
   scale_color_manual(values=c("black", "#e11f28")) +
   scale_size_discrete(range = c(0, 2)) +
   theme_bw()
 maplot
-pdf(file = file.path(plotDir, "MAplot.pdf"))
-maplot
-dev.off()
+# pdf(file = file.path(plotDir, "MA_PBMActivationInHypoxia_plot.pdf"))
+# maplot
+# dev.off()
 
-counts_de %>%
+counts_de_Hyp %>%
   filter(.abundant) %>%
   pivot_transcript(.transcript = feature) %>%
-  arrange(FDR) %>%
-  write_csv(file.path(dirPath, "results", "deBM-D3Hyp-D0_results_ordered.csv"))
+  arrange(desc(stat)) %>%
+  write_csv(file.path(saveDir, "dePB-D3Hyp-D0_results_ordered.csv"))
 
-topgenes_symbols <- c("DEFA1", "EGLN3", "ELANE", "CD177", "CXCL12", "PRTN3", "DEFA3", "FABP4", "HILPDA")
+################### Activation in Normoxia ####################################
+
+topgenes_UP <-
+  counts_de_Nor %>%
+  filter(.abundant) %>%
+  pivot_transcript() %>%
+  arrange(desc(stat)) %>%
+  head(10)
+topgenes_DN <-
+  counts_de_Nor %>%
+  filter(.abundant) %>%
+  pivot_transcript() %>%
+  arrange(stat) %>%
+  head(10)
+topgenes <- full_join(topgenes_DN, topgenes_UP)
+topgenes_symbols <- topgenes %>% pull(feature)
+
+volcano <- counts_de_Nor %>%
+  pivot_transcript() %>%
+  
+  # Subset data
+  filter(.abundant) %>%
+  mutate(significant = padj < 0.01 & abs(log2FoldChange) >= 2) %>%
+  mutate(feature = ifelse(feature %in% topgenes_symbols, as.character(feature), "")) %>%
+  
+  # Plot
+  ggplot(aes(x = log2FoldChange, y = pvalue, label = feature)) +
+  geom_point(aes(color = significant, size = significant, alpha = significant)) +
+  geom_text_repel() +
+  
+  # Custom scales
+  scale_y_continuous(trans = "log10_reverse") +
+  scale_color_manual(values = c("black", "#e11f28")) +
+  scale_size_discrete(range = c(0, 2)) +
+  theme_bw()
+volcano
+
+# pdf(file = file.path(plotDir, "volcano_PBActivationInNormoxia_plot.pdf"))
+# volcano
+# dev.off()
+
+# informative MA plot
+maplot <- counts_de_Nor %>%
+  pivot_transcript() %>%
+  
+  # Subset data
+  filter(.abundant) %>%
+  mutate(significant = padj < 0.01 & abs(log2FoldChange) >= 2) %>%
+  mutate(feature = ifelse(feature %in% topgenes_symbols, as.character(feature), "")) %>%
+  
+  
+  # Plot
+  ggplot(aes(x = lfcSE, y = log2FoldChange, label = feature)) +
+  geom_point(aes(color = significant, size = significant, alpha = significant)) +
+  geom_text_repel() +
+  scale_color_manual(values=c("black", "#e11f28")) +
+  scale_size_discrete(range = c(0, 2)) +
+  theme_bw()
+maplot
+# pdf(file = file.path(plotDir, "MA_PBActivationInNormoxia_plot.pdf"))
+# maplot
+# dev.off()
+
+counts_de_Nor %>%
+  filter(.abundant) %>%
+  pivot_transcript(.transcript = feature) %>%
+  arrange(desc(stat)) %>%
+  write_csv(file.path(saveDir, "dePB-D3Nor-D0_results_ordered.csv"))
+
+hh <- counts_de_Hyp %>% filter(.abundant) %>% pivot_transcript(.transcript = feature) %>%
+  filter(padj < 0.01) %>%
+  filter(abs(log2FoldChange) >=2 ) %>%
+  arrange(desc(stat)) %>%
+  pull(feature)
+
+hh_sig_up <- counts_de_Hyp  %>% filter(.abundant) %>% pivot_transcript(.transcript = feature) %>%
+  filter(padj < 0.01) %>%
+  filter(abs(log2FoldChange) >=2 ) %>% pull(feature)
+
+nn <- counts_de_Nor %>% filter(.abundant) %>% pivot_transcript(.transcript = feature) %>%
+  filter(padj < 0.01) %>%
+  filter(abs(log2FoldChange) >=2 ) %>%
+  arrange(desc(stat)) %>%
+  pull(feature)
+
+nn_sig_up <- counts_de_Nor %>% filter(.abundant) %>% pivot_transcript(.transcript = feature) %>%
+  filter(padj < 0.01) %>%
+  filter(abs(log2FoldChange) >=2 ) %>% pull(feature)
+
+hh %in% nn_sig_up
+hh[!(hh %in% nn_sig_up)] %>% head(10)
+
+nn %in% hh_sig_up
+nn[!(nn %in% hh_sig_up)] %>% head(10)
+
+topgenes_symbols <- c(hh[!(hh %in% nn_sig_up)] %>% head(10), nn[!(nn %in% hh_sig_up)] %>% head(10))
 
 strip_chart <-
   counts_scaled %>%
@@ -676,13 +934,13 @@ strip_chart <-
 
 strip_chart
 
-pdf(file = file.path(plotDir, "stripchart_12genesPBD3-D0.pdf"))
-strip_chart
-dev.off()
+# pdf(file = file.path(plotDir, "stripchart_HvsNgenes_PBD3-D0.pdf"))
+# strip_chart
+# dev.off()
 
 # deconvolve cellularity
-counts_de_cibersort <- deconvolve_cellularity(counts_de, action = "get", cores = 1,
-                                              method = "llsr", prefix = "cibersort__")
+counts_de_cibersort <- deconvolve_cellularity(counts_de_Hyp, action = "get", cores = 1,
+                                              method = "cibersort", prefix = "cibersort__")
 
 counts_de_cibersort %>%
   pivot_longer(
