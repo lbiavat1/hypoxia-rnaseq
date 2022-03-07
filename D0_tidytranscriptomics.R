@@ -75,8 +75,9 @@ colData <- read_tsv(file.path(filesPath, coldataFile))
 is_tibble(colData)
 names(colData)[1] <- "rowname"
 col.data <- column_to_rownames(colData)
+col.data 
 
-# remove D0 samples
+# grep D0 samples
 grep("D0", rownames(col.data))
 col.data <- col.data[grep("D0", rownames(col.data)), ]
 
@@ -207,9 +208,11 @@ hm <- counts_scaled %>%
     show_column_names = FALSE,
     show_row_names = TRUE,
     column_km = 2,
+    column_km_repeats = 100,
     row_km = 3,
-    row_title = "",
-    row_title_gp = grid::gpar(fill = c("red", "blue", "green"), font = c(1,2,3)),
+    row_km_repeats = 100,
+    row_title = "%s",
+    row_title_gp = grid::gpar(fill = c("#A6CEE3", "#1F78B4", "#B2DF8A"), font = c(1,2,3)),
     row_labels = name_list
   ) %>%
   add_tile(c(Tissue))
@@ -240,9 +243,11 @@ hm <- counts_scaled %>%
     show_column_names = FALSE,
     show_row_names = FALSE,
     column_km = 2,
+    column_km_repeats = 100,
     row_km = 3,
+    row_km_repeats = 100,
     row_title = "%s",
-    row_title_gp = grid::gpar(fill = c("red", "blue", "green"), font = 1:3)
+    row_title_gp = grid::gpar(fill = c("#A6CEE3", "#1F78B4", "#B2DF8A"), font = 1:3)
   ) %>%
   add_tile(Tissue)
 hm
