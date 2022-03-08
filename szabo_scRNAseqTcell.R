@@ -94,7 +94,7 @@ p5 <- VlnPlot(t_cell, "PRTN3", pt.size = 0.1, group.by = "tissue", ncol = 1) +
   NoLegend() +
   ylab("Log1p")
 
-p6 <- VlnPlot(t_cell, "MPO", pt.size = 0.1, group.by = "tissue", ncol = 1) +
+p6 <- VlnPlot(t_cell, "MPO", pt.size = 0, group.by = "tissue", ncol = 1) +
   theme(axis.title.x = element_blank(),
         plot.title = element_text()) + 
   NoLegend() +
