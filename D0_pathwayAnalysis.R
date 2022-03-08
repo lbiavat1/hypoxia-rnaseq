@@ -54,6 +54,9 @@ dir.create(filesPath)
 # where to find gmt files
 filePath <- file.path(dirPath, "results")
 
+plotDir <- file.path(saveDir, "plots")
+dir.create(plotDir)
+
 setwd(savePath)
 
 csvPath <- saveDir
@@ -143,6 +146,7 @@ BMvsPB_rnk <- BMvsPB_de %>%
   deframe()
 length(BMvsPB_rnk)
 
+
 BMvsPB_pathways <- GSEA(BMvsPB_rnk, exponent = 1, minGSSize = 2, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
                       TERM2GENE = pathways, by = "fgsea")
 BMvsPB_pathways@result$ID
@@ -169,12 +173,12 @@ BMvsPB_GO <- GSEA(BMvsPB_rnk, exponent = 1, minGSSize = 2, maxGSSize = 500, eps 
 BMvsPB_GO@result$ID
 dotplot(BMvsPB_GO)
 
-gseaplot2(BMvsPB_GO, geneSetID = c("GOCC_T_CELL_RECEPTOR_COMPLEX",
-                                         "GOBP_ANTIMICROBIAL_HUMORAL_IMMUNE_RESPONSE_MEDIATED_BY_ANTIMICROBIAL_PEPTIDE",
-                                   "GOBP_ANTIMICROBIAL_HUMORAL_RESPONSE"))
+gseaplot2(BMvsPB_GO, geneSetID = c("GOBP_ANTIMICROBIAL_HUMORAL_IMMUNE_RESPONSE_MEDIATED_BY_ANTIMICROBIAL_PEPTIDE" ,
+                                   "GOBP_ANTIBACTERIAL_HUMORAL_RESPONSE" ,
+                                   "GOBP_KILLING_OF_CELLS_IN_OTHER_ORGANISM_INVOLVED_IN_SYMBIOTIC_INTERACTION" ))
 
-BMvsPB_GO@result["GOCC_T_CELL_RECEPTOR_COMPLEX","core_enrichment"]
-BMvsPB_GO@result["GOBP_ANTIMICROBIAL_HUMORAL_RESPONSE","core_enrichment"]
+BMvsPB_GO@result["GOBP_DEFENSE_RESPONSE" ,"core_enrichment"]
+BMvsPB_GO@result["GOBP_ANTIBACTERIAL_HUMORAL_RESPONSE","core_enrichment"]
 unlist(strsplit(BMvsPB_GO@result["GOBP_ANTIMICROBIAL_HUMORAL_IMMUNE_RESPONSE_MEDIATED_BY_ANTIMICROBIAL_PEPTIDE","core_enrichment"],
                 "/"))
 
