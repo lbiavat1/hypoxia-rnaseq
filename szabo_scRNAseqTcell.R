@@ -37,9 +37,9 @@ list.files(filesPath)
 
 t_cell <- read_rds(file.path(filesPath, "szabo_t_cell.rds"))
 DimPlot(t_cell, split.by = "tis_stim", group.by = "fine", ncol = 4)
-pdf(file = file.path(plotDir, "UMAP_all.pdf"))
-DimPlot(t_cell, split.by = "tis_stim", group.by = "fine", ncol = 4)
-dev.off()
+# pdf(file = file.path(plotDir, "UMAP_all.pdf"))
+# DimPlot(t_cell, split.by = "tis_stim", group.by = "fine", ncol = 4)
+# dev.off()
 
 ##################### Subset t_cell object #####################################
 # no stim only
@@ -57,9 +57,10 @@ t_cell$neat <- case_when(t_cell$tissue == "bl" ~ "Blood",
 
 features <- c("DEFA1", "DEFA3", "ELANE")
 FeaturePlot(t_cell, features, split.by = "tissue", ncol = 4)
-pdf(file = file.path(plotDir, "UMAP_featureplot.pdf"))
-FeaturePlot(t_cell, features, split.by = "neat", ncol = 4)
-dev.off()
+
+# pdf(file = file.path(plotDir, "UMAP_featureplot.pdf"))
+# FeaturePlot(t_cell, features, split.by = "neat", ncol = 4)
+# dev.off()
 
 # violin plots
 
