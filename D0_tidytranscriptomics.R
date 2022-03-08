@@ -172,9 +172,10 @@ tt_mds %>%
 
 
 row_labels <- c("DEFA1", "DEFA3", "DEFA4", "ELANE", "CD177", "PRTN3", "MPO", "CXCL12", "FABP4", "PKLR")
+
 name_list <- counts_scaled %>%
   filter(.abundant) %>%
-  keep_variable( .abundance = counts_scaled, top = 100) %>%
+  keep_variable( .abundance = counts_scaled, top = 500) %>%
   as_tibble() %>%
   pull(feature)
 name_list <- unique(name_list)
@@ -358,7 +359,7 @@ counts_de_DESeq2 %>%
   arrange(desc(stat)) %>%
   write_csv(file.path(dirPath, "results", "deBM-PBDESeq2_results_ordered.csv"))
 
-topgenes_symbols <- c("DEFA1", "DEFA4", "ELANE", "CD177", "CXCL12", "PRTN3", "DEFA3", "FABP4", "PKLR")
+topgenes_symbols <- c("DEFA1", "DEFA4", "ELANE", "CD177", "CXCL12", "PRTN3", "DEFA3", "FABP4", "CD24")
 
 strip_chart <-
   counts_scaled %>%
