@@ -187,7 +187,7 @@ dev.off()
 
 ##################### extract genes ###############################
 library(SCPA)
-# function to extarct genes from pathways
+# function to extract genes from pathways
 extract_genes <- function(pathways){
   genes <- c()
   if(is_tibble(pathways)){
@@ -209,4 +209,10 @@ ex_pathways <- msigdbr::msigdbr("Homo sapiens", category = "C5") %>%
   format_pathways()
 gene_list <- extract_genes(ex_pathways)
 gene_list
+
+
+# function to extract relevant genes after GSEA
+
+unlist(strsplit(BMvsPB_GO@result["GOBP_ANTIMICROBIAL_HUMORAL_IMMUNE_RESPONSE_MEDIATED_BY_ANTIMICROBIAL_PEPTIDE","core_enrichment"],
+                "/"))
 
