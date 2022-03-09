@@ -135,7 +135,7 @@ length(unique(pathways_GO$term))
 BMvsPB_rnk <- BMvsPB_de %>%
   filter(.abundant) %>%
   mutate(padj = ifelse(is.na(padj), 1, padj)) %>%
-  mutate(significant = padj < 0.01 & abs(log2FoldChange) >= 2.0) %>%
+  mutate(significant = padj < 0.05 & abs(log2FoldChange) >= 2.0) %>%
   filter(significant) %>%
   dplyr::select(feature, stat) %>%
   na.omit() %>%

@@ -359,7 +359,8 @@ counts_de_DESeq2 %>%
   arrange(desc(stat)) %>%
   write_csv(file.path(dirPath, "results", "deBM-PBDESeq2_results_ordered.csv"))
 
-topgenes_symbols <- c("DEFA1", "DEFA4", "ELANE", "CD177", "CXCL12", "PRTN3", "DEFA3", "FABP4", "CD24")
+topgenes_symbols <- c("DEFA1", "DEFA4", "ELANE", "CD177", "CXCL12",
+                      "PRTN3", "DEFA3", "FABP4", "MPO")
 
 strip_chart <-
   counts_scaled %>%

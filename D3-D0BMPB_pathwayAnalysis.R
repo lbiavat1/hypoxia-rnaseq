@@ -130,6 +130,40 @@ pathways <- msigdbr::msigdbr("Homo sapiens") %>%
 pathways
 length(unique(pathways$term))
 
+# pws <- c("kegg", "reactome", "biocarta", "wiki", "pid")
+msigdbr_collections() %>% as.data.frame()
+pathways_GO <- msigdbr(species = "Homo sapiens", category = "C5") %>%
+  dplyr::select(gs_name, gene_symbol) %>%
+  mutate(term = gs_name, gene = gene_symbol) %>%
+  dplyr::select(term, gene)
+
+
+pathways_GO
+length(unique(pathways_GO$term))
+
+# pws <- c("kegg", "reactome", "biocarta", "wiki", "pid")
+msigdbr_collections() %>% as.data.frame()
+pathways_C7 <- msigdbr(species = "Homo sapiens", category = "C7") %>%
+  dplyr::select(gs_name, gene_symbol) %>%
+  mutate(term = gs_name, gene = gene_symbol) %>%
+  dplyr::select(term, gene)
+
+
+pathways_C7
+length(unique(pathways_C7$term))
+
+# pws <- c("kegg", "reactome", "biocarta", "wiki", "pid")
+msigdbr_collections() %>% as.data.frame()
+pathways_C2 <- msigdbr(species = "Homo sapiens", category = "C2") %>%
+  dplyr::select(gs_name, gene_symbol) %>%
+  mutate(term = gs_name, gene = gene_symbol) %>%
+  dplyr::select(term, gene)
+
+
+pathways_C2
+length(unique(pathways_C2$term))
+
+
 ########################### prep Ranked Lists ##################################
 
 BM_HAct_rnk <- BM_HAct %>%
@@ -231,6 +265,55 @@ BM_HAct_metab@result$ID
 gseaplot2(BM_HAct_metab, geneSetID = c("KEGG_FRUCTOSE_AND_MANNOSE_METABOLISM",
                                           "HALLMARK_GLYCOLYSIS"))
 
+# GO pathways
+
+BM_HAct_GO <- GSEA(BM_HAct_rnk, exponent = 1, minGSSize = 2, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
+                      TERM2GENE = pathways_GO, by = "fgsea")
+BM_HAct_GO@result$ID
+
+# C7 pathways
+
+BM_HAct_C7 <- GSEA(BM_HAct_rnk, exponent = 1, minGSSize = 2, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
+                   TERM2GENE = pathways_C7, by = "fgsea")
+BM_HAct_C7@result$ID
+
+gseaplot2(BM_HAct_C7, geneSetID = c("GSE17974_0H_VS_72H_IN_VITRO_ACT_CD4_TCELL_UP",
+                                    "GSE42088_UNINF_VS_LEISHMANIA_INF_DC_24H_UP",
+                                    "GSE37416_CTRL_VS_6H_F_TULARENSIS_LVS_NEUTROPHIL_DN" ))
+
+unlist(strsplit(BM_HAct_C7@result["GSE37416_CTRL_VS_6H_F_TULARENSIS_LVS_NEUTROPHIL_DN", "core_enrichment"], "/"))
+
+# C2 pathways
+
+BM_HAct_C2 <- GSEA(BM_HAct_rnk, exponent = 1, minGSSize = 2, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
+                   TERM2GENE = pathways_C2, by = "fgsea")
+BM_HAct_C2@result$ID
+
+gseaplot2(BM_HAct_C2, geneSetID = c("WINTER_HYPOXIA_UP" ,
+                                    "KRIEG_HYPOXIA_NOT_VIA_KDM3A" ,
+                                    "LEONARD_HYPOXIA",
+                                    "BUFFA_HYPOXIA_METAGENE"))
+
+common_BM <- BM_HAct_rnk[names(BM_HAct_rnk) %in% names(BM_NAct_rnk)]
+H_only <- BM_HAct_rnk[!(names(BM_HAct_rnk) %in% names(BM_NAct_rnk))]
+BM_NAct_rnk %in% BM_HAct_rnk
+
+common_BM_H <- GSEA(common_BM, exponent = 1, minGSSize = 2, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
+                    TERM2GENE = hallmark, by = "fgsea")
+common_BM_H@result$ID
+common_BM_GO <- GSEA(common_BM, exponent = 1, minGSSize = 2, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
+                    TERM2GENE = pathways_GO, by = "fgsea")
+common_BM_GO@result$ID
+common_BM_C2 <- GSEA(common_BM, exponent = 1, minGSSize = 2, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
+                     TERM2GENE = pathways_C2, by = "fgsea")
+common_BM_C2@result$ID
+common_BM_C7 <- GSEA(common_BM, exponent = 1, minGSSize = 2, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
+                     TERM2GENE = pathways_C7, by = "fgsea")
+common_BM_C7@result$ID
+
+H_only_H <- GSEA(H_only, exponent = 1, minGSSize = 2, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
+                     TERM2GENE = hallmark, by = "fgsea")
+H_only_H@result$ID
 ######################### BM_NAct_rnk ##########################################
 # Hallmark
 
