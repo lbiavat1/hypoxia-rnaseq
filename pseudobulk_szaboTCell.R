@@ -9,6 +9,10 @@ library(ComplexHeatmap)
 library(SingleCellExperiment)
 library(muscat)
 
+library(scater)
+library(scran)
+
+
 
 # Set PrimaryDirectory where this script is located
 dirname(rstudioapi::getActiveDocumentContext()$path)  
@@ -23,7 +27,7 @@ dirPath <- file.path(PrimaryDirectory, workingDir)
 dir.create(dirPath)
 
 
-saveDir <- file.path(dirPath, "results")
+saveDir <- file.path(dirPath, "results_pseudobulk")
 savePath <- saveDir
 dir.create(saveDir)
 
@@ -44,6 +48,14 @@ sce <- as.SingleCellExperiment(rest)
 rm(seurat)
 rm(rest)
 colData(sce)
+
+p1 <- plotExpression(sce, features = "DEFA1", x = "ident") + theme(axis.text.x = element_text(angle = 45, 
+                                                                                                   hjust = 1))
+p2 <- plotPCA(sce, colour_by = "ident")
+p1 + p2
+
+top <- getTopHVGs(sce, n = 2000)
+"DEFA1" %in% top
 
 sce <- prepSCE(sce,
                kid = "fine",
