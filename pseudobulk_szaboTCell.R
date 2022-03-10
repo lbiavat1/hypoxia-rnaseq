@@ -41,6 +41,13 @@ Idents(seurat)
 levels(seurat)
 
 rest <- subset(seurat, subset = stimulation == "none")
+
+# p1 <- DimPlot(rest, reduction = "umap", group.by = "tissue") + NoLegend()
+p2 <- RidgePlot(rest, features = "CD3E", group.by = "tissue")
+p3 <- RidgePlot(rest, features = "TRAC", group.by = "tissue")
+# p1 + 
+  p2 + p3
+
 # pseudobulk analysis
 
 
