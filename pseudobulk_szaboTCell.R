@@ -42,9 +42,18 @@ levels(seurat)
 
 rest <- subset(seurat, subset = stimulation == "none")
 
+bm_pb <- subset(rest, subset = tissue == c("bm", "bl"))
+bm_pb
+DimPlot(bm_pb, reduction = "umap", split.by = "tissue")
+
+features <- c("DEFA1", "DEFA3", "CD3E")
+FeaturePlot(bm_pb, features, split.by = "tissue", ncol = 4)
+FeaturePlot(bm_pb, "CD3E", split.by = "tissue")
+FeaturePlot(bm_pb, "DEFA1", split.by = "tissue")
+
 # p1 <- DimPlot(rest, reduction = "umap", group.by = "tissue") + NoLegend()
-p2 <- RidgePlot(rest, features = "CD3E", group.by = "tissue")
-p3 <- RidgePlot(rest, features = "TRAC", group.by = "tissue")
+p2 <- RidgePlot(bm_pb, features = "DEFA3", group.by = "tissue")
+p3 <- RidgePlot(bm_pb, features = "TRAC", group.by = "tissue")
 # p1 + 
   p2 + p3
 
