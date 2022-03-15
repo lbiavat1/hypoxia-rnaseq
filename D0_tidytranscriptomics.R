@@ -111,7 +111,7 @@ counts_format <- counts %>%
   mutate(Tissue = str_remove(Tissue, "L"))
 
 counts_scaled <- counts_format %>%
-  identify_abundant(factor_of_interest = Tissue, minimum_counts = 25, minimum_proportion = 0.25) %>%
+  identify_abundant(factor_of_interest = Tissue, minimum_counts = 25, minimum_proportion = 0.250) %>%
   scale_abundance(method = "TMM")
 
 counts_scaled %>%
