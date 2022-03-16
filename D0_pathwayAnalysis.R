@@ -131,11 +131,23 @@ pathways_GO <- msigdbr(species = "Homo sapiens", category = "C5") %>%
 pathways_GO
 length(unique(pathways_GO$term))
 
+# Transcription factors - GTRD
+
+msigdbr_collections() %>% as.data.frame()
+pathways_TFT <- msigdbr(species = "Homo sapiens", category = "C3", subcategory = "TFT:GTRD") %>%
+  dplyr::select(gs_name, gene_symbol) %>%
+  mutate(term = gs_name, gene = gene_symbol) %>%
+  dplyr::select(term, gene)
+
+
+pathways_TFT
+length(unique(pathways_TFT$term))
+
 
 BMvsPB_rnk <- BMvsPB_de %>%
   filter(.abundant) %>%
   mutate(padj = ifelse(is.na(padj), 1, padj)) %>%
-  mutate(significant = padj < 0.05 & abs(log2FoldChange) >= 2.0) %>%
+  mutate(significant = padj < 0.01 & abs(log2FoldChange) >= 2.0) %>%
   filter(significant) %>%
   dplyr::select(feature, stat) %>%
   na.omit() %>%
@@ -188,6 +200,11 @@ gseaplot2(BMvsPB_GO, geneSetID = c("GOCC_T_CELL_RECEPTOR_COMPLEX",
                                    "GOBP_ANTIMICROBIAL_HUMORAL_RESPONSE"))
 dev.off()
 
+# TFT
+BMvsPB_TFT <- GSEA(BMvsPB_rnk, exponent = 1, minGSSize = 2, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
+                  TERM2GENE = pathways_TFT, by = "fgsea")
+
+BMvsPB_TFT@result$ID
 
 ##################### extract genes ###############################
 library(SCPA)
@@ -211,8 +228,12 @@ ex_pathways <- msigdbr::msigdbr("Homo sapiens", category = "C5") %>%
                         "GOBP_ANTIMICROBIAL_HUMORAL_RESPONSE",
                         "GOBP_ANTIMICROBIAL_HUMORAL_IMMUNE_RESPONSE_MEDIATED_BY_ANTIMICROBIAL_PEPTIDE")) %>%
   format_pathways()
+
+ex_pathways <- msigdbr::msigdbr("Homo sapiens", category = "C3", subcategory = "TFT:GTRD") %>%
+  format_pathways()
 gene_list <- extract_genes(ex_pathways)
 gene_list
+
 
 
 # function to extract relevant genes after GSEA
