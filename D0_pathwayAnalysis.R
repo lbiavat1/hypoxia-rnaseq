@@ -139,8 +139,10 @@ pathways_TFT <- msigdbr(species = "Homo sapiens", category = "C3", subcategory =
   mutate(term = gs_name, gene = gene_symbol) %>%
   dplyr::select(term, gene)
 
-
-pathways_TFT$term[grepl("CEBPE", pathways_TFT$term)]
+grepl("CEBPE", pathways_TFT$term)
+pathways_TFT %>%
+  filter(grepl("CEBPE", pathways_TFT$term)) %>%
+  pull(gene)
 length(unique(pathways_TFT$term))
 
 # Cell type - C8
