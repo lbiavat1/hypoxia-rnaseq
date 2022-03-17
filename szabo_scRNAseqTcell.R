@@ -18,7 +18,7 @@ PrimaryDirectory <- getwd()
 PrimaryDirectory
 
 # create working directory
-workingDir <- "WorkingDirectory_D0"
+workingDir <- "WorkingDirectory_Szabo"
 dirPath <- file.path(PrimaryDirectory, workingDir)
 dir.create(dirPath)
 setwd(dirPath)
@@ -94,11 +94,12 @@ p5 <- VlnPlot(t_cell, "PRTN3", pt.size = 0.1, group.by = "tissue", ncol = 1) +
   NoLegend() +
   ylab("Log1p")
 
-p6 <- VlnPlot(t_cell, "MPO", pt.size = 0, group.by = "tissue", ncol = 1) +
+p6 <- VlnPlot(t_cell, "MYB", pt.size = 0, group.by = "tissue", ncol = 1) +
   theme(axis.title.x = element_blank(),
         plot.title = element_text()) + 
   NoLegend() +
   ylab("Log1p")
+p6
 
 patchwork::wrap_plots(p1, p2, p3, p4, p5, p6, ncol = 3)
 
@@ -114,6 +115,10 @@ pathways <- msigdbr::msigdbr("Homo sapiens") %>%
   filter(grepl("ANTIMICROBIAL", gs_name, ignore.case = TRUE) |
            grepl("PROSTAGLANDIN", gs_name, ignore.case = TRUE) |
            grepl("HALLMARK", x = gs_name, ignore.case = TRUE)) %>%
+  format_pathways()
+pathways <- msigdbr("Homo sapiens") %>%
+  filter(grepl(paste(pws, collapse = "|"), gs_subcat, ignore.case = T) |
+           grepl("HALLMARK", x = gs_name, ignore.case = T)) %>%
   format_pathways()
 length(pathways)
 ###################### extract genes from pathways ############################
