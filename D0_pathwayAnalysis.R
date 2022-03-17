@@ -140,7 +140,7 @@ pathways_TFT <- msigdbr(species = "Homo sapiens", category = "C3", subcategory =
   dplyr::select(term, gene)
 
 
-pathways_TFT
+pathways_TFT$term[grepl("CEBPE", pathways_TFT$term)]
 length(unique(pathways_TFT$term))
 
 
@@ -201,7 +201,7 @@ gseaplot2(BMvsPB_GO, geneSetID = c("GOCC_T_CELL_RECEPTOR_COMPLEX",
 dev.off()
 
 # TFT
-BMvsPB_TFT <- GSEA(BMvsPB_rnk, exponent = 1, minGSSize = 2, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
+BMvsPB_TFT <- GSEA(BMvsPB_rnk, exponent = 1, minGSSize = 1, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
                   TERM2GENE = pathways_TFT, by = "fgsea")
 
 BMvsPB_TFT@result$ID
