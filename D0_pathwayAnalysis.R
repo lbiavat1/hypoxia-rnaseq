@@ -143,6 +143,15 @@ pathways_TFT <- msigdbr(species = "Homo sapiens", category = "C3", subcategory =
 pathways_TFT$term[grepl("CEBPE", pathways_TFT$term)]
 length(unique(pathways_TFT$term))
 
+# Cell type - C8
+msigdbr_collections() %>% as.data.frame()
+pathways_C8 <- msigdbr(species = "Homo sapiens", category = "C8") %>%
+  dplyr::select(gs_name, gene_symbol) %>%
+  mutate(term = gs_name, gene = gene_symbol) %>%
+  dplyr::select(term, gene)
+
+
+length(unique(pathways_C8$term))
 
 BMvsPB_rnk <- BMvsPB_de %>%
   filter(.abundant) %>%
@@ -159,12 +168,14 @@ BMvsPB_rnk <- BMvsPB_de %>%
 length(BMvsPB_rnk)
 
 
-BMvsPB_pathways <- GSEA(BMvsPB_rnk, exponent = 1, minGSSize = 2, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
+BMvsPB_pathways <- GSEA(BMvsPB_rnk, exponent = 1, minGSSize = 5, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
                       TERM2GENE = pathways, by = "fgsea")
 BMvsPB_pathways@result$ID
 dotplot(BMvsPB_pathways)
 gseaplot2(BMvsPB_pathways, geneSetID = "REACTOME_ANTIMICROBIAL_PEPTIDES")
-gseaplot2(BMvsPB_pathways, geneSetID = "REACTOME_NEUTROPHIL_DEGRANULATION")
+gseaplot2(BMvsPB_pathways, geneSetID = "REACTOME_NEUTROPHIL_DEGRANULATION"  )
+unlist(strsplit(BMvsPB_pathways@result["REACTOME_NEUTROPHIL_DEGRANULATION" ,"core_enrichment"],
+                "/"))
 gseaplot2(BMvsPB_pathways, geneSetID = "REACTOME_INNATE_IMMUNE_SYSTEM")
 gseaplot2(BMvsPB_pathways, geneSetID = c("REACTOME_INNATE_IMMUNE_SYSTEM",
                                          "REACTOME_NEUTROPHIL_DEGRANULATION",
@@ -201,11 +212,25 @@ gseaplot2(BMvsPB_GO, geneSetID = c("GOCC_T_CELL_RECEPTOR_COMPLEX",
 dev.off()
 
 # TFT
-BMvsPB_TFT <- GSEA(BMvsPB_rnk, exponent = 1, minGSSize = 1, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
+BMvsPB_TFT <- GSEA(BMvsPB_rnk, exponent = 1, minGSSize = 5, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
                   TERM2GENE = pathways_TFT, by = "fgsea")
 
 BMvsPB_TFT@result$ID
+pdf(file.path(plotDir, "gseaPlot_TFT.pdf"))
+gseaplot2(BMvsPB_TFT, geneSetID = c("HLF_01" ))
+dev.off()
 
+# C8
+BMvsPB_C8 <- GSEA(BMvsPB_rnk, exponent = 1, minGSSize = 5, maxGSSize = 500, eps = 0, pvalueCutoff = 0.05,
+                   TERM2GENE = pathways_C8, by = "fgsea")
+
+BMvsPB_C8@result$ID
+
+gseaplot2(BMvsPB_C8, geneSetID = c("HAY_BONE_MARROW_NAIVE_T_CELL",
+                                   "HAY_BONE_MARROW_CD34_POS_GRAN",
+                                   "TRAVAGLINI_LUNG_CD4_MEMORY_EFFECTOR_T_CELL" ))
+unlist(strsplit(BMvsPB_C8@result["TRAVAGLINI_LUNG_CD4_MEMORY_EFFECTOR_T_CELL","core_enrichment"],
+                "/"))
 ##################### extract genes ###############################
 library(SCPA)
 # function to extract genes from pathways
@@ -223,14 +248,12 @@ extract_genes <- function(pathways){
   return(genes)
 }
 
-ex_pathways <- msigdbr::msigdbr("Homo sapiens", category = "C5") %>%
-  dplyr::filter(gs_name %in% c("GOCC_T_CELL_RECEPTOR_COMPLEX",
-                        "GOBP_ANTIMICROBIAL_HUMORAL_RESPONSE",
-                        "GOBP_ANTIMICROBIAL_HUMORAL_IMMUNE_RESPONSE_MEDIATED_BY_ANTIMICROBIAL_PEPTIDE")) %>%
+ex_pathways <- msigdbr::msigdbr("Homo sapiens", category = "C8") %>%
+  dplyr::filter(gs_name %in% c("HAY_BONE_MARROW_NAIVE_T_CELL",
+                               "HAY_BONE_MARROW_NK_CELLS",
+                               "HAY_BONE_MARROW_CD8_T_CELL")) %>%
   format_pathways()
 
-ex_pathways <- msigdbr::msigdbr("Homo sapiens", category = "C3", subcategory = "TFT:GTRD") %>%
-  format_pathways()
 gene_list <- extract_genes(ex_pathways)
 gene_list
 
