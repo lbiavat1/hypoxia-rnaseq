@@ -22,7 +22,7 @@ PrimaryDirectory <- getwd()
 PrimaryDirectory
 
 # create working directory
-workingDir <- "WorkingDirectory_D0"
+workingDir <- "WorkingDirectory_Szabo"
 dirPath <- file.path(PrimaryDirectory, workingDir)
 dir.create(dirPath)
 
@@ -46,32 +46,59 @@ bm_pb <- subset(rest, subset = tissue == c("bm", "bl"))
 bm_pb
 DimPlot(bm_pb, reduction = "umap", split.by = "tissue")
 
-features <- c("DEFA1", "DEFA3", "CD3E")
-FeaturePlot(bm_pb, features, split.by = "tissue", ncol = 4)
-FeaturePlot(bm_pb, "CD3E", split.by = "tissue")
-FeaturePlot(bm_pb, "DEFA1", split.by = "tissue")
-
-# p1 <- DimPlot(rest, reduction = "umap", group.by = "tissue") + NoLegend()
-p2 <- RidgePlot(bm_pb, features = "DEFA3", group.by = "tissue")
-p3 <- RidgePlot(bm_pb, features = "TRAC", group.by = "tissue")
-# p1 + 
-  p2 + p3
+# bm_pb <- DietSeurat(bm_pb, 
+#                     counts = TRUE,
+#                     data = TRUE,
+#                     scale.data = FALSE,
+#                     features = NULL,
+#                     assays = NULL,
+#                     dimreducs = NULL,
+#                     graphs = NULL)
+bm_pb
 
 # pseudobulk analysis
 
+seurat <- bm_pb
+# Extract raw counts and metadata to create SingleCellExperiment object
+counts <- seurat@assays$RNA@counts 
 
-sce <- as.SingleCellExperiment(rest)
+metadata <- seurat@meta.data
+colnames(metadata)
+
+# Set up metadata as desired for aggregation and DE analysis
+metadata$cluster_id <- metadata$tissue
+
+# Create single cell experiment object
+sce <- SingleCellExperiment(assays = list(counts = counts), 
+                            colData = metadata)
+
+# Identify groups for aggregation of counts
+groups <- colData(sce)[, c("cluster_id")]
+
+
+
+sce$id <- paste0(sce$stim, sce$ind)
+(sce <- prepSCE(sce, 
+                kid = "cell", # subpopulation assignments
+                gid = "stim",  # group IDs (ctrl/stim)
+                sid = "id",   # sample IDs (ctrl/stim.1234)
+                drop = TRUE))  # drop all other colData columns
+
+sce <- as.SingleCellExperiment(bm_pb)
 rm(seurat)
 rm(rest)
-colData(sce)
+rm(bm_pb)
+colnames(colData(sce))
+# remove undetected genes
+dim(sce)
+sce <- sce[rowSums(counts(sce) > 0) > 0, ]
+dim(sce)
 
-p1 <- plotExpression(sce, features = "DEFA1", x = "ident") + theme(axis.text.x = element_text(angle = 45, 
-                                                                                                   hjust = 1))
-p2 <- plotPCA(sce, colour_by = "ident")
-p1 + p2
+# compute sum-factors & normalize
+sce <- computeLibraryFactors(sce)
+sce <- logNormCounts(sce)
+sce
 
-top <- getTopHVGs(sce, n = 2000)
-"DEFA1" %in% top
 
 sce <- prepSCE(sce,
                kid = "fine",
