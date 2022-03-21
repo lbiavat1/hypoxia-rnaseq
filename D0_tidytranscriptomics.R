@@ -353,6 +353,14 @@ counts_de %>%
   arrange(FDR) %>%
   write_csv(file.path(dirPath, "results", "deBM-PBedgeR_results_ordered.csv"))
 
+counts_de %>%
+  filter(.abundant) %>%
+  pivot_transcript(.transcript = feature) %>%
+  arrange(FDR) %>%
+  filter(FDR < 0.01) %>%
+  filter(abs(logFC) > 2) %>%
+  write_csv(file.path(dirPath, "results", "deBM-PBedgeR_results_orderedSIG.csv"))
+
 counts_de_DESeq2 %>%
   filter(.abundant) %>%
   pivot_transcript(.transcript = feature) %>%
