@@ -50,6 +50,7 @@ cts <- read_tsv(file.path(filesPath, countFile))
 is_tibble(cts)
 cts
 
+
 # prep cts
 rowname_cts <- cts
 names(rowname_cts)[1] <- "rowname"
